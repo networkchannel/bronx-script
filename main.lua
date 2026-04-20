@@ -8,11 +8,11 @@ local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 local PGui = LP:WaitForChild("PlayerGui")
 
--- Nettoyage
+-- Nettoyage : détruit toutes les ScreenGui de scripts (pas celles du jeu)
 local function destroyAllExistingUIs()
     for _, g in ipairs(PGui:GetChildren()) do
-        if g:IsA("ScreenGui") and g.Name == "ToolkitGui" then
-            g:Destroy()
+        if g:IsA("ScreenGui") and not g.RobloxLocked then
+            pcall(function() g:Destroy() end)
         end
     end
     task.wait(0.05)
