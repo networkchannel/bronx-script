@@ -343,6 +343,38 @@ end
 
 -- Construction UI
 local espPill, espOn = makeToggle("📊", "ESP")
+
+-- Bouton Gun Store
+local gunBtn = Instance.new("TextButton")
+gunBtn.Size = UDim2.new(1, 0, 0, 50)
+gunBtn.BackgroundColor3 = Color3.fromRGB(22, 26, 36)
+gunBtn.BorderSizePixel = 0
+gunBtn.Text = ""
+gunBtn.ZIndex = 11
+gunBtn.Parent = Content
+corner(12, gunBtn)
+stroke(Color3.fromRGB(60, 75, 110), 1, 0.5, gunBtn)
+
+local gunIco = label("🔫", 20, ACCENT, Enum.Font.GothamBold, gunBtn)
+gunIco.Size = UDim2.fromOffset(36, 50)
+gunIco.Position = UDim2.fromOffset(12, 0)
+gunIco.ZIndex = 12
+
+local gunLbl = label("Go to Gun Store", 14, Color3.fromRGB(230, 230, 240), Enum.Font.GothamMedium, gunBtn)
+gunLbl.Size = UDim2.new(1, -60, 1, 0)
+gunLbl.Position = UDim2.fromOffset(54, 0)
+gunLbl.TextXAlignment = Enum.TextXAlignment.Left
+gunLbl.ZIndex = 12
+
+gunBtn.MouseEnter:Connect(function() tween(gunBtn, {BackgroundColor3 = Color3.fromRGB(35, 42, 60)}) end)
+gunBtn.MouseLeave:Connect(function() tween(gunBtn, {BackgroundColor3 = Color3.fromRGB(22, 26, 36)}) end)
+gunBtn.MouseButton1Click:Connect(function()
+    local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if myRoot then
+        myRoot.CFrame = CFrame.new(6590.24, 3580.35, 2276.79)
+    end
+end)
+
 makeDropdown()
 
 -- Drag
