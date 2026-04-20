@@ -1,383 +1,494 @@
--- AimLock + ESP + TP - ULTIMATE VERSION
--- Place dans StarterPlayerScripts
--- UI Glass Morphism Design
-
-local Players          = game:GetService("Players")
-local RunService       = game:GetService("RunService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera      = workspace.CurrentCamera
+local Camera = workspace.CurrentCamera
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── DESTRUCTION COMPLÈTE DES UI EXISTANTES ───────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function destroyAllExistingUIs()
     local playerGui = LocalPlayer:WaitForChild("PlayerGui")
-    
     for _, gui in ipairs(playerGui:GetChildren()) do
         if gui:IsA("ScreenGui") and gui.Name == "AimLockGui" then
             gui:Destroy()
         end
     end
-    
-    for _, gui in ipairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            for _, child in ipairs(gui:GetChildren()) do
-                if child:IsA("Folder") and child.Name:match("^ESP_") then
-                    child:Destroy()
-                end
-                if child:IsA("Frame") and (
-                    child.BackgroundColor3 == Color3.fromRGB(255, 60, 60) or
-                    child.BackgroundColor3 == Color3.fromRGB(20, 20, 20)
-                ) then
-                    child:Destroy()
-                end
-                if child:IsA("TextLabel") and child.TextStrokeTransparency and child.TextStrokeTransparency < 0.5 then
-                    child:Destroy()
-                end
-            end
-        end
-    end
-    
     task.wait(0.05)
 end
 
 destroyAllExistingUIs()
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── UI GLASS MORPHISM DESIGN ──────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name            = "AimLockGui"
-ScreenGui.ResetOnSpawn    = false
-ScreenGui.IgnoreGuiInset  = true
-ScreenGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent          = LocalPlayer.PlayerGui
+ScreenGui.Name = "AimLockGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer.PlayerGui
 
-local FRAME_W, FRAME_H = 320, 280
+local FRAME_W, FRAME_H = 340, 320
 
--- Container principal avec effet glass
 local MainContainer = Instance.new("Frame")
-MainContainer.Size            = UDim2.new(0, FRAME_W, 0, FRAME_H)
-MainContainer.Position        = UDim2.new(0.5, -FRAME_W / 2, 0.5, -FRAME_H / 2)
-MainContainer.BackgroundColor3= Color3.fromRGB(15, 15, 20)
-MainContainer.BackgroundTransparency = 0.3
+MainContainer.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
+MainContainer.Position = UDim2.new(0.5, -FRAME_W / 2, 0.5, -FRAME_H / 2)
+MainContainer.BackgroundColor3 = Color3.fromRGB(18, 20, 26)
+MainContainer.BackgroundTransparency = 0.08
 MainContainer.BorderSizePixel = 0
-MainContainer.Active          = true
-MainContainer.ZIndex          = 10
-MainContainer.Parent          = ScreenGui
+MainContainer.Active = true
+MainContainer.ZIndex = 10
+MainContainer.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 16)
+MainCorner.CornerRadius = UDim.new(0, 20)
 MainCorner.Parent = MainContainer
 
--- Effet Glass Blur
-local GlassBlur = Instance.new("ImageLabel")
-GlassBlur.Size                   = UDim2.new(1, 0, 1, 0)
-GlassBlur.BackgroundTransparency = 1
-GlassBlur.Image                  = "rbxassetid://8992230677"
-GlassBlur.ImageColor3            = Color3.fromRGB(20, 25, 35)
-GlassBlur.ImageTransparency      = 0.7
-GlassBlur.ScaleType              = Enum.ScaleType.Slice
-GlassBlur.SliceCenter            = Rect.new(100, 100, 100, 100)
-GlassBlur.ZIndex                 = 9
-GlassBlur.Parent                 = MainContainer
-Instance.new("UICorner", GlassBlur).CornerRadius = UDim.new(0, 16)
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(80, 90, 120)
+MainStroke.Thickness = 1
+MainStroke.Transparency = 0.7
+MainStroke.Parent = MainContainer
 
--- Border glow effect
-local BorderGlow = Instance.new("UIStroke")
-BorderGlow.Color          = Color3.fromRGB(100, 120, 255)
-BorderGlow.Thickness      = 1.5
-BorderGlow.Transparency   = 0.5
-BorderGlow.Parent         = MainContainer
-
--- Shadow
 local Shadow = Instance.new("ImageLabel")
-Shadow.Size                   = UDim2.new(1, 40, 1, 40)
-Shadow.Position               = UDim2.new(0, -20, 0, -20)
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 60, 1, 60)
+Shadow.Position = UDim2.new(0, -30, 0, -30)
 Shadow.BackgroundTransparency = 1
-Shadow.Image                  = "rbxasset://textures/ui/GuiImagePlaceholder.png"
-Shadow.ImageColor3            = Color3.fromRGB(0, 0, 0)
-Shadow.ImageTransparency      = 0.5
-Shadow.ScaleType              = Enum.ScaleType.Slice
-Shadow.SliceCenter            = Rect.new(10, 10, 10, 10)
-Shadow.ZIndex                 = 8
-Shadow.Parent                 = MainContainer
+Shadow.Image = "rbxassetid://5554236805"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.3
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+Shadow.ZIndex = 9
+Shadow.Parent = MainContainer
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── HEADER ────────────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local Header = Instance.new("Frame")
-Header.Size              = UDim2.new(1, 0, 0, 50)
-Header.BackgroundColor3  = Color3.fromRGB(25, 30, 45)
-Header.BackgroundTransparency = 0.4
-Header.BorderSizePixel   = 0
-Header.ZIndex            = 11
-Header.Parent            = MainContainer
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 16)
+Header.Size = UDim2.new(1, 0, 0, 60)
+Header.BackgroundColor3 = Color3.fromRGB(28, 32, 42)
+Header.BackgroundTransparency = 0.3
+Header.BorderSizePixel = 0
+Header.ZIndex = 11
+Header.Parent = MainContainer
 
--- Header gradient
-local HeaderGradient = Instance.new("UIGradient")
-HeaderGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 70, 100)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 35, 50))
-}
-HeaderGradient.Rotation = 90
-HeaderGradient.Parent = Header
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 20)
+HeaderCorner.Parent = Header
 
--- Title avec icon
+local HeaderCover = Instance.new("Frame")
+HeaderCover.Size = UDim2.new(1, 0, 0, 20)
+HeaderCover.Position = UDim2.new(0, 0, 1, -20)
+HeaderCover.BackgroundColor3 = Color3.fromRGB(28, 32, 42)
+HeaderCover.BackgroundTransparency = 0.3
+HeaderCover.BorderSizePixel = 0
+HeaderCover.ZIndex = 11
+HeaderCover.Parent = Header
+
 local TitleIcon = Instance.new("TextLabel")
-TitleIcon.Size                 = UDim2.new(0, 40, 0, 40)
-TitleIcon.Position             = UDim2.new(0, 10, 0, 5)
+TitleIcon.Size = UDim2.new(0, 40, 0, 40)
+TitleIcon.Position = UDim2.new(0, 16, 0, 10)
 TitleIcon.BackgroundTransparency = 1
-TitleIcon.Text                 = "⚡"
-TitleIcon.TextColor3           = Color3.fromRGB(120, 140, 255)
-TitleIcon.TextSize             = 24
-TitleIcon.Font                 = Enum.Font.GothamBold
-TitleIcon.ZIndex               = 12
-TitleIcon.Parent               = Header
+TitleIcon.Text = "⚡"
+TitleIcon.TextColor3 = Color3.fromRGB(130, 150, 255)
+TitleIcon.TextSize = 26
+TitleIcon.Font = Enum.Font.GothamBold
+TitleIcon.ZIndex = 12
+TitleIcon.Parent = Header
 
 local Title = Instance.new("TextLabel")
-Title.Size                 = UDim2.new(1, -60, 0, 25)
-Title.Position             = UDim2.new(0, 50, 0, 5)
+Title.Size = UDim2.new(1, -70, 0, 28)
+Title.Position = UDim2.new(0, 60, 0, 8)
 Title.BackgroundTransparency = 1
-Title.Text                 = "ULTIMATE TOOLKIT"
-Title.TextColor3           = Color3.fromRGB(255, 255, 255)
-Title.TextSize             = 16
-Title.Font                 = Enum.Font.GothamBold
-Title.TextXAlignment       = Enum.TextXAlignment.Left
-Title.ZIndex               = 12
-Title.Parent               = Header
+Title.Text = "ULTIMATE TOOLKIT"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 12
+Title.Parent = Header
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size                 = UDim2.new(1, -60, 0, 15)
-Subtitle.Position             = UDim2.new(0, 50, 0, 28)
+Subtitle.Size = UDim2.new(1, -70, 0, 16)
+Subtitle.Position = UDim2.new(0, 60, 0, 34)
 Subtitle.BackgroundTransparency = 1
-Subtitle.Text                 = "AimLock • ESP • Teleport"
-Subtitle.TextColor3           = Color3.fromRGB(150, 160, 200)
-Subtitle.TextSize             = 11
-Subtitle.Font                 = Enum.Font.Gotham
-Subtitle.TextXAlignment       = Enum.TextXAlignment.Left
-Subtitle.TextTransparency     = 0.3
-Subtitle.ZIndex               = 12
-Subtitle.Parent               = Header
+Subtitle.Text = "AimLock • ESP • Teleport"
+Subtitle.TextColor3 = Color3.fromRGB(160, 170, 200)
+Subtitle.TextSize = 12
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.TextTransparency = 0.3
+Subtitle.ZIndex = 12
+Subtitle.Parent = Header
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── CONTAINER POUR LES OPTIONS ────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local ContentContainer = Instance.new("ScrollingFrame")
-ContentContainer.Size              = UDim2.new(1, -20, 1, -70)
-ContentContainer.Position          = UDim2.new(0, 10, 0, 60)
+ContentContainer.Size = UDim2.new(1, -32, 1, -84)
+ContentContainer.Position = UDim2.new(0, 16, 0, 72)
 ContentContainer.BackgroundTransparency = 1
-ContentContainer.BorderSizePixel   = 0
+ContentContainer.BorderSizePixel = 0
 ContentContainer.ScrollBarThickness = 4
-ContentContainer.ScrollBarImageColor3 = Color3.fromRGB(100, 120, 255)
-ContentContainer.ZIndex            = 11
-ContentContainer.CanvasSize        = UDim2.new(0, 0, 0, 0)
+ContentContainer.ScrollBarImageColor3 = Color3.fromRGB(130, 150, 255)
+ContentContainer.ZIndex = 11
+ContentContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 ContentContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ContentContainer.Parent            = MainContainer
+ContentContainer.Parent = MainContainer
 
 local Layout = Instance.new("UIListLayout")
-Layout.FillDirection  = Enum.FillDirection.Vertical
-Layout.Padding        = UDim.new(0, 8)
-Layout.Parent         = ContentContainer
+Layout.FillDirection = Enum.FillDirection.Vertical
+Layout.Padding = UDim.new(0, 12)
+Layout.Parent = ContentContainer
 
-local Padding = Instance.new("UIPadding")
-Padding.PaddingLeft   = UDim.new(0, 5)
-Padding.PaddingRight  = UDim.new(0, 5)
-Padding.PaddingTop    = UDim.new(0, 5)
-Padding.PaddingBottom = UDim.new(0, 5)
-Padding.Parent        = ContentContainer
-
--- ══════════════════════════════════════════════════════════════════════════════
--- ── HELPER : Créer une section ────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function makeSection(title)
     local section = Instance.new("Frame")
-    section.Size              = UDim2.new(1, 0, 0, 28)
+    section.Size = UDim2.new(1, 0, 0, 32)
     section.BackgroundTransparency = 1
-    section.ZIndex            = 11
-    section.Parent            = ContentContainer
+    section.ZIndex = 11
+    section.Parent = ContentContainer
 
     local sectionLabel = Instance.new("TextLabel")
-    sectionLabel.Size                 = UDim2.new(1, 0, 1, 0)
+    sectionLabel.Size = UDim2.new(1, 0, 1, 0)
     sectionLabel.BackgroundTransparency = 1
-    sectionLabel.Text                 = title
-    sectionLabel.TextColor3           = Color3.fromRGB(120, 140, 255)
-    sectionLabel.TextSize             = 13
-    sectionLabel.Font                 = Enum.Font.GothamBold
-    sectionLabel.TextXAlignment       = Enum.TextXAlignment.Left
-    sectionLabel.ZIndex               = 12
-    sectionLabel.Parent               = section
+    sectionLabel.Text = title
+    sectionLabel.TextColor3 = Color3.fromRGB(130, 150, 255)
+    sectionLabel.TextSize = 13
+    sectionLabel.Font = Enum.Font.GothamBold
+    sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
+    sectionLabel.ZIndex = 12
+    sectionLabel.Parent = section
 
     local underline = Instance.new("Frame")
-    underline.Size              = UDim2.new(0, 40, 0, 2)
-    underline.Position          = UDim2.new(0, 0, 1, -4)
-    underline.BackgroundColor3  = Color3.fromRGB(120, 140, 255)
-    underline.BorderSizePixel   = 0
-    underline.ZIndex            = 12
-    underline.Parent            = section
-    Instance.new("UICorner", underline).CornerRadius = UDim.new(1, 0)
+    underline.Size = UDim2.new(0, 50, 0, 2)
+    underline.Position = UDim2.new(0, 0, 1, -6)
+    underline.BackgroundColor3 = Color3.fromRGB(130, 150, 255)
+    underline.BorderSizePixel = 0
+    underline.ZIndex = 12
+    underline.Parent = section
+    
+    local underlineCorner = Instance.new("UICorner")
+    underlineCorner.CornerRadius = UDim.new(1, 0)
+    underlineCorner.Parent = underline
 
     return section
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── HELPER : Créer une ligne toggle ──────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function makeToggleRow(labelText, icon)
     local row = Instance.new("Frame")
-    row.Size              = UDim2.new(1, 0, 0, 48)
-    row.BackgroundColor3  = Color3.fromRGB(25, 30, 45)
-    row.BackgroundTransparency = 0.6
-    row.BorderSizePixel   = 0
-    row.ZIndex            = 11
-    row.Parent            = ContentContainer
-    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
+    row.Size = UDim2.new(1, 0, 0, 56)
+    row.BackgroundColor3 = Color3.fromRGB(28, 32, 42)
+    row.BackgroundTransparency = 0.5
+    row.BorderSizePixel = 0
+    row.ZIndex = 11
+    row.Parent = ContentContainer
+    
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, 12)
+    rowCorner.Parent = row
 
-    -- Hover effect background
-    local hoverBg = Instance.new("Frame")
-    hoverBg.Size              = UDim2.new(1, 0, 1, 0)
-    hoverBg.BackgroundColor3  = Color3.fromRGB(255, 255, 255)
-    hoverBg.BackgroundTransparency = 1
-    hoverBg.BorderSizePixel   = 0
-    hoverBg.ZIndex            = 11
-    hoverBg.Parent            = row
-    Instance.new("UICorner", hoverBg).CornerRadius = UDim.new(0, 10)
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Color = Color3.fromRGB(60, 70, 90)
+    rowStroke.Thickness = 1
+    rowStroke.Transparency = 0.8
+    rowStroke.Parent = row
 
-    -- Icon
     local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size                 = UDim2.new(0, 36, 0, 36)
-    iconLabel.Position             = UDim2.new(0, 8, 0.5, -18)
-    iconLabel.BackgroundColor3     = Color3.fromRGB(40, 50, 70)
-    iconLabel.BackgroundTransparency = 0.5
-    iconLabel.Text                 = icon
-    iconLabel.TextColor3           = Color3.fromRGB(120, 140, 255)
-    iconLabel.TextSize             = 20
-    iconLabel.Font                 = Enum.Font.GothamBold
-    iconLabel.ZIndex               = 12
-    iconLabel.Parent               = row
-    Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(0, 8)
+    iconLabel.Size = UDim2.new(0, 40, 0, 40)
+    iconLabel.Position = UDim2.new(0, 12, 0.5, -20)
+    iconLabel.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    iconLabel.BackgroundTransparency = 0.4
+    iconLabel.Text = icon
+    iconLabel.TextColor3 = Color3.fromRGB(130, 150, 255)
+    iconLabel.TextSize = 22
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.ZIndex = 12
+    iconLabel.Parent = row
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 10)
+    iconCorner.Parent = iconLabel
 
-    -- Label
     local lbl = Instance.new("TextLabel")
-    lbl.Size                 = UDim2.new(1, -120, 1, 0)
-    lbl.Position             = UDim2.new(0, 52, 0, 0)
+    lbl.Size = UDim2.new(1, -140, 1, 0)
+    lbl.Position = UDim2.new(0, 60, 0, 0)
     lbl.BackgroundTransparency = 1
-    lbl.Text                 = labelText
-    lbl.TextColor3           = Color3.fromRGB(240, 240, 250)
-    lbl.TextSize             = 14
-    lbl.Font                 = Enum.Font.GothamMedium
-    lbl.TextXAlignment       = Enum.TextXAlignment.Left
-    lbl.ZIndex               = 12
-    lbl.Parent               = row
+    lbl.Text = labelText
+    lbl.TextColor3 = Color3.fromRGB(245, 245, 250)
+    lbl.TextSize = 15
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 12
+    lbl.Parent = row
 
-    -- Toggle button
     local btn = Instance.new("TextButton")
-    btn.Size             = UDim2.new(0, 54, 0, 28)
-    btn.Position         = UDim2.new(1, -64, 0.5, -14)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 45, 60)
-    btn.BorderSizePixel  = 0
-    btn.Text             = ""
-    btn.ZIndex           = 12
-    btn.Parent           = row
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+    btn.Size = UDim2.new(0, 56, 0, 30)
+    btn.Position = UDim2.new(1, -68, 0.5, -15)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.ZIndex = 12
+    btn.Parent = row
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(1, 0)
+    btnCorner.Parent = btn
 
     local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color       = Color3.fromRGB(60, 70, 90)
-    btnStroke.Thickness   = 1
-    btnStroke.Transparency = 0.5
-    btnStroke.Parent      = btn
+    btnStroke.Color = Color3.fromRGB(70, 80, 100)
+    btnStroke.Thickness = 1
+    btnStroke.Transparency = 0.6
+    btnStroke.Parent = btn
 
     local knob = Instance.new("Frame")
-    knob.Size             = UDim2.new(0, 22, 0, 22)
-    knob.Position         = UDim2.new(0, 3, 0.5, -11)
-    knob.BackgroundColor3 = Color3.fromRGB(100, 110, 130)
-    knob.BorderSizePixel  = 0
-    knob.ZIndex           = 13
-    knob.Parent           = btn
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    knob.Size = UDim2.new(0, 24, 0, 24)
+    knob.Position = UDim2.new(0, 3, 0.5, -12)
+    knob.BackgroundColor3 = Color3.fromRGB(110, 120, 140)
+    knob.BorderSizePixel = 0
+    knob.ZIndex = 13
+    knob.Parent = btn
+    
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
 
-    -- Hover animation
+    local knobShadow = Instance.new("ImageLabel")
+    knobShadow.Size = UDim2.new(1, 12, 1, 12)
+    knobShadow.Position = UDim2.new(0, -6, 0, -6)
+    knobShadow.BackgroundTransparency = 1
+    knobShadow.Image = "rbxassetid://5554236805"
+    knobShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    knobShadow.ImageTransparency = 0.6
+    knobShadow.ScaleType = Enum.ScaleType.Slice
+    knobShadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    knobShadow.ZIndex = 12
+    knobShadow.Parent = knob
+
     row.MouseEnter:Connect(function()
-        TweenService:Create(hoverBg, TweenInfo.new(0.2), {BackgroundTransparency = 0.95}):Play()
+        TweenService:Create(rowStroke, TweenInfo.new(0.2), {Transparency = 0.5}):Play()
     end)
     row.MouseLeave:Connect(function()
-        TweenService:Create(hoverBg, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(rowStroke, TweenInfo.new(0.2), {Transparency = 0.8}):Play()
     end)
 
     return btn, knob, row
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── HELPER : Créer un bouton d'action ────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function makeActionButton(labelText, icon)
     local btn = Instance.new("TextButton")
-    btn.Size             = UDim2.new(1, 0, 0, 48)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 100, 200)
-    btn.BackgroundTransparency = 0.3
-    btn.BorderSizePixel  = 0
-    btn.Text             = ""
-    btn.ZIndex           = 12
-    btn.Parent           = ContentContainer
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    btn.Size = UDim2.new(1, 0, 0, 56)
+    btn.BackgroundColor3 = Color3.fromRGB(90, 110, 220)
+    btn.BackgroundTransparency = 0.2
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.ZIndex = 12
+    btn.Parent = ContentContainer
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 12)
+    btnCorner.Parent = btn
 
     local btnGradient = Instance.new("UIGradient")
     btnGradient.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 120, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 90, 200))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(110, 130, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(80, 100, 220))
     }
     btnGradient.Rotation = 45
     btnGradient.Parent = btn
 
     local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color       = Color3.fromRGB(120, 140, 255)
-    btnStroke.Thickness   = 1
-    btnStroke.Transparency = 0.7
-    btnStroke.Parent      = btn
+    btnStroke.Color = Color3.fromRGB(140, 160, 255)
+    btnStroke.Thickness = 1
+    btnStroke.Transparency = 0.6
+    btnStroke.Parent = btn
+
+    local btnShadow = Instance.new("ImageLabel")
+    btnShadow.Size = UDim2.new(1, 20, 1, 20)
+    btnShadow.Position = UDim2.new(0, -10, 0, -10)
+    btnShadow.BackgroundTransparency = 1
+    btnShadow.Image = "rbxassetid://5554236805"
+    btnShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    btnShadow.ImageTransparency = 0.5
+    btnShadow.ScaleType = Enum.ScaleType.Slice
+    btnShadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    btnShadow.ZIndex = 11
+    btnShadow.Parent = btn
 
     local iconLabel = Instance.new("TextLabel")
-    iconLabel.Size                 = UDim2.new(0, 36, 0, 36)
-    iconLabel.Position             = UDim2.new(0, 8, 0.5, -18)
+    iconLabel.Size = UDim2.new(0, 40, 0, 40)
+    iconLabel.Position = UDim2.new(0, 12, 0.5, -20)
     iconLabel.BackgroundTransparency = 1
-    iconLabel.Text                 = icon
-    iconLabel.TextColor3           = Color3.fromRGB(255, 255, 255)
-    iconLabel.TextSize             = 20
-    iconLabel.Font                 = Enum.Font.GothamBold
-    iconLabel.ZIndex               = 13
-    iconLabel.Parent               = btn
+    iconLabel.Text = icon
+    iconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    iconLabel.TextSize = 22
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.ZIndex = 13
+    iconLabel.Parent = btn
 
     local label = Instance.new("TextLabel")
-    label.Size                 = UDim2.new(1, -52, 1, 0)
-    label.Position             = UDim2.new(0, 52, 0, 0)
+    label.Size = UDim2.new(1, -60, 1, 0)
+    label.Position = UDim2.new(0, 60, 0, 0)
     label.BackgroundTransparency = 1
-    label.Text                 = labelText
-    label.TextColor3           = Color3.fromRGB(255, 255, 255)
-    label.TextSize             = 14
-    label.Font                 = Enum.Font.GothamBold
-    label.TextXAlignment       = Enum.TextXAlignment.Left
-    label.ZIndex               = 13
-    label.Parent               = btn
+    label.Text = labelText
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 15
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 13
+    label.Parent = btn
 
-    -- Hover effect
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
         TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
     end)
     btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 0.7}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+        TweenService:Create(btnStroke, TweenInfo.new(0.2), {Transparency = 0.6}):Play()
     end)
 
     return btn
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── CRÉATION DE L'UI ──────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
+local function makeDropdown(labelText, icon)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 56)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 11
+    container.Parent = ContentContainer
+
+    local mainBtn = Instance.new("TextButton")
+    mainBtn.Size = UDim2.new(1, 0, 0, 56)
+    mainBtn.BackgroundColor3 = Color3.fromRGB(28, 32, 42)
+    mainBtn.BackgroundTransparency = 0.5
+    mainBtn.BorderSizePixel = 0
+    mainBtn.Text = ""
+    mainBtn.ZIndex = 12
+    mainBtn.Parent = container
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = mainBtn
+
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = Color3.fromRGB(60, 70, 90)
+    mainStroke.Thickness = 1
+    mainStroke.Transparency = 0.8
+    mainStroke.Parent = mainBtn
+
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(0, 40, 0, 40)
+    iconLabel.Position = UDim2.new(0, 12, 0.5, -20)
+    iconLabel.BackgroundColor3 = Color3.fromRGB(45, 50, 65)
+    iconLabel.BackgroundTransparency = 0.4
+    iconLabel.Text = icon
+    iconLabel.TextColor3 = Color3.fromRGB(130, 150, 255)
+    iconLabel.TextSize = 22
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.ZIndex = 13
+    iconLabel.Parent = mainBtn
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 10)
+    iconCorner.Parent = iconLabel
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -120, 1, 0)
+    label.Position = UDim2.new(0, 60, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = labelText
+    label.TextColor3 = Color3.fromRGB(245, 245, 250)
+    label.TextSize = 15
+    label.Font = Enum.Font.GothamMedium
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 13
+    label.Parent = mainBtn
+
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 30, 0, 30)
+    arrow.Position = UDim2.new(1, -42, 0.5, -15)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = Color3.fromRGB(160, 170, 200)
+    arrow.TextSize = 14
+    arrow.Font = Enum.Font.GothamBold
+    arrow.ZIndex = 13
+    arrow.Parent = mainBtn
+
+    local dropList = Instance.new("ScrollingFrame")
+    dropList.Size = UDim2.new(1, 0, 0, 0)
+    dropList.Position = UDim2.new(0, 0, 0, 62)
+    dropList.BackgroundColor3 = Color3.fromRGB(22, 26, 36)
+    dropList.BackgroundTransparency = 0.1
+    dropList.BorderSizePixel = 0
+    dropList.ScrollBarThickness = 3
+    dropList.ScrollBarImageColor3 = Color3.fromRGB(130, 150, 255)
+    dropList.Visible = false
+    dropList.ZIndex = 15
+    dropList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    dropList.Parent = container
+    
+    local dropCorner = Instance.new("UICorner")
+    dropCorner.CornerRadius = UDim.new(0, 12)
+    dropCorner.Parent = dropList
+
+    local dropStroke = Instance.new("UIStroke")
+    dropStroke.Color = Color3.fromRGB(80, 90, 120)
+    dropStroke.Thickness = 1
+    dropStroke.Transparency = 0.7
+    dropStroke.Parent = dropList
+
+    local dropShadow = Instance.new("ImageLabel")
+    dropShadow.Size = UDim2.new(1, 20, 1, 20)
+    dropShadow.Position = UDim2.new(0, -10, 0, -10)
+    dropShadow.BackgroundTransparency = 1
+    dropShadow.Image = "rbxassetid://5554236805"
+    dropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    dropShadow.ImageTransparency = 0.4
+    dropShadow.ScaleType = Enum.ScaleType.Slice
+    dropShadow.SliceCenter = Rect.new(23, 23, 277, 277)
+    dropShadow.ZIndex = 14
+    dropShadow.Parent = dropList
+
+    local dropLayout = Instance.new("UIListLayout")
+    dropLayout.FillDirection = Enum.FillDirection.Vertical
+    dropLayout.Padding = UDim.new(0, 2)
+    dropLayout.Parent = dropList
+
+    local dropPadding = Instance.new("UIPadding")
+    dropPadding.PaddingLeft = UDim.new(0, 6)
+    dropPadding.PaddingRight = UDim.new(0, 6)
+    dropPadding.PaddingTop = UDim.new(0, 6)
+    dropPadding.PaddingBottom = UDim.new(0, 6)
+    dropPadding.Parent = dropList
+
+    local isOpen = false
+
+    mainBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        
+        if isOpen then
+            local numPlayers = #Players:GetPlayers() - 1
+            local height = math.min(numPlayers * 44 + 12, 200)
+            
+            dropList.Visible = true
+            TweenService:Create(dropList, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, height)
+            }):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.2), {Rotation = 180}):Play()
+            TweenService:Create(container, TweenInfo.new(0.2), {
+                Size = UDim2.new(1, 0, 0, 56 + height + 6)
+            }):Play()
+        else
+            TweenService:Create(dropList, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, 0)
+            }):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            TweenService:Create(container, TweenInfo.new(0.2), {
+                Size = UDim2.new(1, 0, 0, 56)
+            }):Play()
+            
+            task.wait(0.2)
+            dropList.Visible = false
+        end
+    end)
+
+    return container, dropList
+end
+
 makeSection("🎮 COMBAT")
 local aimBtn, aimKnob = makeToggleRow("AimLock", "🎯")
 
@@ -385,18 +496,14 @@ makeSection("👁️ VISUAL")
 local espBtn, espKnob = makeToggleRow("ESP", "📊")
 
 makeSection("🚀 MOVEMENT")
-local tpBtn = makeActionButton("Teleport to Player", "⚡")
+local tpContainer, tpDropList = makeDropdown("Teleport to Player", "⚡")
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── DRAG SYSTEM ───────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local dragging, dragStart, frameStart = false, Vector2.new(), Vector2.new()
 
 Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
-        dragging   = true
-        dragStart  = Vector2.new(input.Position.X, input.Position.Y)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = Vector2.new(input.Position.X, input.Position.Y)
         frameStart = Vector2.new(MainContainer.AbsolutePosition.X, MainContainer.AbsolutePosition.Y)
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
@@ -408,107 +515,100 @@ end)
 
 UserInputService.InputChanged:Connect(function(input)
     if not dragging then return end
-    if input.UserInputType == Enum.UserInputType.MouseMovement
-    or input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStart
-        local vp    = Camera.ViewportSize
-        local newX  = math.clamp(frameStart.X + delta.X, 0, vp.X - FRAME_W)
-        local newY  = math.clamp(frameStart.Y + delta.Y, 0, vp.Y - FRAME_H)
+        local vp = Camera.ViewportSize
+        local newX = math.clamp(frameStart.X + delta.X, 0, vp.X - FRAME_W)
+        local newY = math.clamp(frameStart.Y + delta.Y, 0, vp.Y - FRAME_H)
         MainContainer.Position = UDim2.fromOffset(newX, newY)
     end
 end)
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── ÉTAT ──────────────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local aimEnabled = false
 local espEnabled = false
-local smoothing  = 0.18
+local smoothing = 0.18
 
 local espObjects = {}
 local connections = {}
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── TOGGLE VISUEL AVEC ANIMATION ──────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function setVisual(btn, knob, state)
     local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
     
     if state then
-        TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(60, 200, 120)}):Play()
+        TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(70, 210, 130)}):Play()
         TweenService:Create(knob, tweenInfo, {
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            Position = UDim2.new(0, 29, 0.5, -11)
+            Position = UDim2.new(0, 29, 0.5, -12)
         }):Play()
     else
-        TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 45, 60)}):Play()
+        TweenService:Create(btn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(45, 50, 65)}):Play()
         TweenService:Create(knob, tweenInfo, {
-            BackgroundColor3 = Color3.fromRGB(100, 110, 130),
-            Position = UDim2.new(0, 3, 0.5, -11)
+            BackgroundColor3 = Color3.fromRGB(110, 120, 140),
+            Position = UDim2.new(0, 3, 0.5, -12)
         }):Play()
     end
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── ESP AMÉLIORÉ (FIX POSITION) ───────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function createESP(player)
     if espObjects[player] then return end
 
     local function makeLine()
         local f = Instance.new("Frame")
-        f.BackgroundColor3 = Color3.fromRGB(120, 140, 255)
-        f.BorderSizePixel  = 0
-        f.ZIndex           = 5
-        f.Parent           = ScreenGui
+        f.BackgroundColor3 = Color3.fromRGB(130, 150, 255)
+        f.BorderSizePixel = 0
+        f.ZIndex = 5
+        f.Parent = ScreenGui
         return f
     end
 
-    local top    = makeLine()
+    local top = makeLine()
     local bottom = makeLine()
-    local left   = makeLine()
-    local right  = makeLine()
+    local left = makeLine()
+    local right = makeLine()
 
-    -- Distance label
     local distLabel = Instance.new("TextLabel")
     distLabel.BackgroundTransparency = 1
-    distLabel.TextColor3             = Color3.fromRGB(120, 140, 255)
-    distLabel.TextSize               = 12
-    distLabel.Font                   = Enum.Font.GothamBold
-    distLabel.Text                   = ""
-    distLabel.TextStrokeTransparency = 0.2
-    distLabel.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
-    distLabel.Size                   = UDim2.new(0, 100, 0, 16)
-    distLabel.ZIndex                 = 6
-    distLabel.Parent                 = ScreenGui
+    distLabel.TextColor3 = Color3.fromRGB(130, 150, 255)
+    distLabel.TextSize = 13
+    distLabel.Font = Enum.Font.GothamBold
+    distLabel.Text = ""
+    distLabel.TextStrokeTransparency = 0
+    distLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    distLabel.Size = UDim2.new(0, 100, 0, 18)
+    distLabel.ZIndex = 6
+    distLabel.Parent = ScreenGui
 
-    -- Nom
     local nameLbl = Instance.new("TextLabel")
     nameLbl.BackgroundTransparency = 1
-    nameLbl.TextColor3             = Color3.fromRGB(255, 255, 255)
-    nameLbl.TextSize               = 14
-    nameLbl.Font                   = Enum.Font.GothamBold
-    nameLbl.Text                   = player.Name
-    nameLbl.TextStrokeTransparency = 0.2
-    nameLbl.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
-    nameLbl.Size                   = UDim2.new(0, 150, 0, 18)
-    nameLbl.ZIndex                 = 6
-    nameLbl.Parent                 = ScreenGui
+    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLbl.TextSize = 15
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.Text = player.Name
+    nameLbl.TextStrokeTransparency = 0
+    nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLbl.Size = UDim2.new(0, 150, 0, 20)
+    nameLbl.ZIndex = 6
+    nameLbl.Parent = ScreenGui
 
-    -- Barre de vie
     local hpBg = Instance.new("Frame")
-    hpBg.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    hpBg.BorderSizePixel  = 0
-    hpBg.ZIndex           = 5
-    hpBg.Parent           = ScreenGui
-    Instance.new("UICorner", hpBg).CornerRadius = UDim.new(0, 2)
+    hpBg.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+    hpBg.BorderSizePixel = 0
+    hpBg.ZIndex = 5
+    hpBg.Parent = ScreenGui
+    
+    local hpBgCorner = Instance.new("UICorner")
+    hpBgCorner.CornerRadius = UDim.new(0, 3)
+    hpBgCorner.Parent = hpBg
 
     local hpBar = Instance.new("Frame")
-    hpBar.BackgroundColor3 = Color3.fromRGB(60, 220, 80)
-    hpBar.BorderSizePixel  = 0
-    hpBar.ZIndex           = 6
-    hpBar.Parent           = hpBg
-    Instance.new("UICorner", hpBar).CornerRadius = UDim.new(0, 2)
+    hpBar.BackgroundColor3 = Color3.fromRGB(70, 230, 90)
+    hpBar.BorderSizePixel = 0
+    hpBar.ZIndex = 6
+    hpBar.Parent = hpBg
+    
+    local hpBarCorner = Instance.new("UICorner")
+    hpBarCorner.CornerRadius = UDim.new(0, 3)
+    hpBarCorner.Parent = hpBar
 
     espObjects[player] = {
         top = top, bottom = bottom, left = left, right = right,
@@ -537,11 +637,8 @@ local function hideESP(player)
     end
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── MISE À JOUR ESP CORRIGÉE ──────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local THICKNESS = 2
-local HP_W      = 5
+local HP_W = 6
 
 local function updateESP()
     local myChar = LocalPlayer.Character
@@ -550,25 +647,23 @@ local function updateESP()
     for _, player in ipairs(Players:GetPlayers()) do
         if player == LocalPlayer then continue end
 
-        local obj  = espObjects[player]
+        local obj = espObjects[player]
         if not obj then continue end
 
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
-        local hum  = char and char:FindFirstChildOfClass("Humanoid")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
 
         if not root or not hum or hum.Health <= 0 then
             hideESP(player)
             continue
         end
 
-        -- Calcul de la taille réelle du personnage
         local rootPos = root.Position
         local headPos = char:FindFirstChild("Head") and char.Head.Position or rootPos + Vector3.new(0, 2, 0)
         
-        -- Points haut (tête + offset) et bas (pieds)
-        local topWorld = headPos + Vector3.new(0, 0.5, 0)
-        local botWorld = rootPos - Vector3.new(0, 2.5, 0) -- Ajusté pour les pieds
+        local topWorld = headPos + Vector3.new(0, 0.6, 0)
+        local botWorld = rootPos - Vector3.new(0, 2.8, 0)
 
         local topScreen, topVis = Camera:WorldToScreenPoint(topWorld)
         local botScreen, botVis = Camera:WorldToScreenPoint(botWorld)
@@ -578,9 +673,8 @@ local function updateESP()
             continue
         end
 
-        -- Dimensions
         local h = math.abs(botScreen.Y - topScreen.Y)
-        local w = h * 0.45
+        local w = h * 0.48
         local cx = (topScreen.X + botScreen.X) / 2
         local cy = (topScreen.Y + botScreen.Y) / 2
 
@@ -589,59 +683,51 @@ local function updateESP()
         local x2 = cx + w / 2
         local y2 = botScreen.Y
 
-        -- Box
-        obj.top.Size     = UDim2.fromOffset(w, THICKNESS)
+        obj.top.Size = UDim2.fromOffset(w, THICKNESS)
         obj.top.Position = UDim2.fromOffset(x1, y1)
-        obj.top.Visible  = true
+        obj.top.Visible = true
 
-        obj.bottom.Size     = UDim2.fromOffset(w, THICKNESS)
+        obj.bottom.Size = UDim2.fromOffset(w, THICKNESS)
         obj.bottom.Position = UDim2.fromOffset(x1, y2)
-        obj.bottom.Visible  = true
+        obj.bottom.Visible = true
 
-        obj.left.Size     = UDim2.fromOffset(THICKNESS, h)
+        obj.left.Size = UDim2.fromOffset(THICKNESS, h)
         obj.left.Position = UDim2.fromOffset(x1, y1)
-        obj.left.Visible  = true
+        obj.left.Visible = true
 
-        obj.right.Size     = UDim2.fromOffset(THICKNESS, h)
+        obj.right.Size = UDim2.fromOffset(THICKNESS, h)
         obj.right.Position = UDim2.fromOffset(x2, y1)
-        obj.right.Visible  = true
+        obj.right.Visible = true
 
-        -- Nom
-        obj.nameLbl.Position = UDim2.fromOffset(cx - 75, y1 - 22)
-        obj.nameLbl.Visible  = true
+        obj.nameLbl.Position = UDim2.fromOffset(cx - 75, y1 - 26)
+        obj.nameLbl.Visible = true
 
-        -- Distance
         if myRoot then
             local dist = (root.Position - myRoot.Position).Magnitude
             obj.distLabel.Text = string.format("%.0fm", dist)
-            obj.distLabel.Position = UDim2.fromOffset(cx - 50, y2 + 5)
+            obj.distLabel.Position = UDim2.fromOffset(cx - 50, y2 + 6)
             obj.distLabel.Visible = true
         end
 
-        -- Barre de vie
         local hpRatio = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-        obj.hpBg.Size     = UDim2.fromOffset(HP_W, h)
-        obj.hpBg.Position = UDim2.fromOffset(x1 - HP_W - 4, y1)
-        obj.hpBg.Visible  = true
+        obj.hpBg.Size = UDim2.fromOffset(HP_W, h)
+        obj.hpBg.Position = UDim2.fromOffset(x1 - HP_W - 5, y1)
+        obj.hpBg.Visible = true
 
-        obj.hpBar.Size     = UDim2.new(1, 0, hpRatio, 0)
+        obj.hpBar.Size = UDim2.new(1, 0, hpRatio, 0)
         obj.hpBar.Position = UDim2.new(0, 0, 1 - hpRatio, 0)
         
-        -- Couleur dynamique
         if hpRatio > 0.7 then
-            obj.hpBar.BackgroundColor3 = Color3.fromRGB(60, 220, 80)
+            obj.hpBar.BackgroundColor3 = Color3.fromRGB(70, 230, 90)
         elseif hpRatio > 0.3 then
-            obj.hpBar.BackgroundColor3 = Color3.fromRGB(255, 180, 0)
+            obj.hpBar.BackgroundColor3 = Color3.fromRGB(255, 190, 0)
         else
-            obj.hpBar.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+            obj.hpBar.BackgroundColor3 = Color3.fromRGB(230, 70, 70)
         end
         obj.hpBar.Visible = true
     end
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── GESTION JOUEURS ───────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 connections.playerAdded = Players.PlayerAdded:Connect(function(p)
     if espEnabled then 
         task.wait(0.1)
@@ -653,9 +739,6 @@ connections.playerRemoving = Players.PlayerRemoving:Connect(function(p)
     removeESP(p)
 end)
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── AIMLOCK ───────────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 local function getNearestPlayer()
     local myChar = LocalPlayer.Character
     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
@@ -668,7 +751,7 @@ local function getNearestPlayer()
         if p ~= LocalPlayer then
             local char = p.Character
             local head = char and char:FindFirstChild("Head")
-            local hum  = char and char:FindFirstChildOfClass("Humanoid")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
             
             if head and hum and hum.Health > 0 then
                 local screenPos, onScreen = Camera:WorldToScreenPoint(head.Position)
@@ -685,45 +768,112 @@ local function getNearestPlayer()
     return nearest
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── TELEPORT TO PLAYER ────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
-local function teleportToNearestPlayer()
+local function teleportToPlayer(targetPlayer)
     local myChar = LocalPlayer.Character
     local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
     if not myRoot then return end
     
-    local nearest = getNearestPlayer()
-    if nearest then
-        -- Teleport avec offset pour éviter de spawn dans le joueur
-        local targetPos = nearest.Parent.HumanoidRootPart.Position
-        myRoot.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 3))
+    local targetChar = targetPlayer.Character
+    local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if targetRoot then
+        local targetPos = targetRoot.Position
+        myRoot.CFrame = CFrame.new(targetPos + Vector3.new(0, 0, 4))
         
-        -- Notification visuelle
         local notif = Instance.new("TextLabel")
-        notif.Size = UDim2.new(0, 200, 0, 40)
-        notif.Position = UDim2.new(0.5, -100, 0.1, 0)
-        notif.BackgroundColor3 = Color3.fromRGB(60, 200, 120)
-        notif.BackgroundTransparency = 0.3
-        notif.Text = "✓ Teleported to " .. nearest.Parent.Name
+        notif.Size = UDim2.new(0, 220, 0, 44)
+        notif.Position = UDim2.new(0.5, -110, 0.08, 0)
+        notif.BackgroundColor3 = Color3.fromRGB(70, 210, 130)
+        notif.BackgroundTransparency = 0.2
+        notif.Text = "✓ Teleported to " .. targetPlayer.Name
         notif.TextColor3 = Color3.fromRGB(255, 255, 255)
-        notif.TextSize = 14
+        notif.TextSize = 15
         notif.Font = Enum.Font.GothamBold
         notif.ZIndex = 100
         notif.Parent = ScreenGui
-        Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 8)
         
-        TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 0.1}):Play()
-        task.wait(1.5)
+        local notifCorner = Instance.new("UICorner")
+        notifCorner.CornerRadius = UDim.new(0, 10)
+        notifCorner.Parent = notif
+        
+        local notifShadow = Instance.new("ImageLabel")
+        notifShadow.Size = UDim2.new(1, 20, 1, 20)
+        notifShadow.Position = UDim2.new(0, -10, 0, -10)
+        notifShadow.BackgroundTransparency = 1
+        notifShadow.Image = "rbxassetid://5554236805"
+        notifShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+        notifShadow.ImageTransparency = 0.4
+        notifShadow.ScaleType = Enum.ScaleType.Slice
+        notifShadow.SliceCenter = Rect.new(23, 23, 277, 277)
+        notifShadow.ZIndex = 99
+        notifShadow.Parent = notif
+        
+        TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+        task.wait(1.8)
         TweenService:Create(notif, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
         task.wait(0.3)
         notif:Destroy()
     end
 end
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── BOUTONS ───────────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
+local function updatePlayerList()
+    for _, child in ipairs(tpDropList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local playerBtn = Instance.new("TextButton")
+            playerBtn.Size = UDim2.new(1, 0, 0, 40)
+            playerBtn.BackgroundColor3 = Color3.fromRGB(32, 38, 50)
+            playerBtn.BackgroundTransparency = 0.3
+            playerBtn.BorderSizePixel = 0
+            playerBtn.Text = ""
+            playerBtn.ZIndex = 16
+            playerBtn.Parent = tpDropList
+            
+            local playerCorner = Instance.new("UICorner")
+            playerCorner.CornerRadius = UDim.new(0, 8)
+            playerCorner.Parent = playerBtn
+
+            local playerLabel = Instance.new("TextLabel")
+            playerLabel.Size = UDim2.new(1, -16, 1, 0)
+            playerLabel.Position = UDim2.new(0, 8, 0, 0)
+            playerLabel.BackgroundTransparency = 1
+            playerLabel.Text = player.Name
+            playerLabel.TextColor3 = Color3.fromRGB(240, 240, 250)
+            playerLabel.TextSize = 14
+            playerLabel.Font = Enum.Font.GothamMedium
+            playerLabel.TextXAlignment = Enum.TextXAlignment.Left
+            playerLabel.ZIndex = 17
+            playerLabel.Parent = playerBtn
+
+            playerBtn.MouseEnter:Connect(function()
+                TweenService:Create(playerBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0}):Play()
+            end)
+            playerBtn.MouseLeave:Connect(function()
+                TweenService:Create(playerBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.3}):Play()
+            end)
+
+            playerBtn.MouseButton1Click:Connect(function()
+                teleportToPlayer(player)
+            end)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function()
+    updatePlayerList()
+end)
+
+Players.PlayerRemoving:Connect(function()
+    updatePlayerList()
+end)
+
+updatePlayerList()
+
 aimBtn.MouseButton1Click:Connect(function()
     aimEnabled = not aimEnabled
     setVisual(aimBtn, aimKnob, aimEnabled)
@@ -746,13 +896,6 @@ espBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-tpBtn.MouseButton1Click:Connect(function()
-    teleportToNearestPlayer()
-end)
-
--- ══════════════════════════════════════════════════════════════════════════════
--- ── BOUCLE PRINCIPALE ─────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 connections.renderStepped = RunService.RenderStepped:Connect(function()
     if aimEnabled then
         local target = getNearestPlayer()
@@ -761,7 +904,7 @@ connections.renderStepped = RunService.RenderStepped:Connect(function()
             local screenPos, onScreen = Camera:WorldToScreenPoint(targetPos)
             
             if onScreen then
-                local vp     = Camera.ViewportSize
+                local vp = Camera.ViewportSize
                 local deltaX = (screenPos.X - vp.X / 2) * smoothing
                 local deltaY = (vp.Y / 2 - screenPos.Y) * smoothing
                 
@@ -779,9 +922,6 @@ connections.renderStepped = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ══════════════════════════════════════════════════════════════════════════════
--- ── NETTOYAGE ─────────────────────────────────────────────────────────────────
--- ══════════════════════════════════════════════════════════════════════════════
 ScreenGui.Destroying:Connect(function()
     for _, conn in pairs(connections) do
         if conn then conn:Disconnect() end
@@ -792,11 +932,9 @@ ScreenGui.Destroying:Connect(function()
     end
 end)
 
--- Animation d'entrée
 MainContainer.Position = UDim2.new(0.5, -FRAME_W / 2, -0.5, 0)
 TweenService:Create(MainContainer, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
     Position = UDim2.new(0.5, -FRAME_W / 2, 0.5, -FRAME_H / 2)
 }):Play()
 
-print("✨ Ultimate Toolkit loaded successfully!")
-print("🎯 Features: AimLock • ESP • Teleport")
+print("✨ Ultimate Toolkit loaded!")
