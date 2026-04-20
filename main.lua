@@ -9,9 +9,15 @@ local Cam = workspace.CurrentCamera
 local PGui = LP:WaitForChild("PlayerGui")
 
 -- Nettoyage
-for _, g in ipairs(PGui:GetChildren()) do
-    if g.Name == "ToolkitGui" then g:Destroy() end
+local function destroyAllExistingUIs()
+    for _, g in ipairs(PGui:GetChildren()) do
+        if g:IsA("ScreenGui") and g.Name == "ToolkitGui" then
+            g:Destroy()
+        end
+    end
+    task.wait(0.05)
 end
+destroyAllExistingUIs()
 
 -- Constantes
 local W, H = 300, 280
