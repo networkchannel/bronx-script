@@ -273,12 +273,16 @@ local function makeDropdown()
         if isOpen then
             local count = refreshList()
             local h = math.min(count * 42 + 12, 200)
-            updateDropPos(0)
             dropList.Visible = true
             tween(arrow, {Rotation = 180})
-            -- Tween manuel de la hauteur
-            local goal = UDim2.fromOffset(container.AbsoluteSize.X, h)
-            TweenService:Create(dropList, TI, {Size = goal}):Play()
+            -- On attend un frame que AbsolutePosition soit calculée
+            task.defer(function()
+                local absPos = container.AbsolutePosition
+                local absW = container.AbsoluteSize.X
+                dropList.Position = UDim2.fromOffset(absPos.X, absPos.Y + container.AbsoluteSize.Y + 4)
+                dropList.Size = UDim2.fromOffset(absW, 0)
+                TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(absW, h)}):Play()
+            end)
         else
             tween(arrow, {Rotation = 0})
             TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(container.AbsoluteSize.X, 0)}):Play()
