@@ -344,8 +344,6 @@ end
 -- Construction UI
 local espPill, espOn = makeToggle("📊", "ESP")
 
-makeDropdown()
-
 -- Bouton Gun Store
 local gunBtn = Instance.new("TextButton")
 gunBtn.Size = UDim2.new(1, 0, 0, 50)
@@ -376,6 +374,8 @@ gunBtn.MouseButton1Click:Connect(function()
         myRoot.CFrame = CFrame.new(6590.24, 3580.35, 2276.79)
     end
 end)
+
+makeDropdown()
 
 -- Drag
 local dragging, dStart, fStart = false, Vector2.zero, Vector2.zero
