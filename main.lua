@@ -8,10 +8,10 @@ local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 local PGui = LP:WaitForChild("PlayerGui")
 
--- Nettoyage : détruit toutes les ScreenGui de scripts (pas celles du jeu)
+-- Détruit uniquement nos propres GUIs (signature _TOOLKIT_SCRIPT)
 local function destroyAllExistingUIs()
     for _, g in ipairs(PGui:GetChildren()) do
-        if g:IsA("ScreenGui") and not g.RobloxLocked then
+        if g:IsA("ScreenGui") and g:GetAttribute("_TOOLKIT_SCRIPT") then
             pcall(function() g:Destroy() end)
         end
     end
@@ -48,6 +48,7 @@ Gui.Name = "ToolkitGui"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui:SetAttribute("_TOOLKIT_SCRIPT", true) -- signature pour nettoyage
 Gui.Parent = PGui
 
 -- Conteneur principal (opaque, pas de transparency)
