@@ -232,19 +232,25 @@ local function makeDropdown()
 
     local isOpen = false
 
-    local function getDropGeometry()
-        -- Position et taille calculées depuis l'AbsolutePosition du container
-        local ap = container.AbsolutePosition
-        local as = container.AbsoluteSize
+    local function getDropGeometry(h)
+        h = h or 200
+        local mp = Main.AbsolutePosition
+        local ms = Main.AbsoluteSize
         local vp = Cam.ViewportSize
-        local maxH = 200
-        local x = ap.X
-        local y = ap.Y + as.Y + 6
-        -- Si ça dépasse en bas, afficher au dessus
-        if y + maxH > vp.Y then
-            y = ap.Y - maxH - 6
+        local w  = ms.X
+        local x  = mp.X
+        -- Toujours en dehors de la fenêtre principale : en dessous ou au-dessus
+        local yBelow = mp.Y + ms.Y + 6
+        local yAbove = mp.Y - h - 6
+        local y
+        if yBelow + h <= vp.Y then
+            y = yBelow
+        elseif yAbove >= 0 then
+            y = yAbove
+        else
+            y = yBelow -- fallback
         end
-        return x, y, as.X
+        return x, y, w
     end
 
     local function refreshList()
@@ -287,22 +293,47 @@ local function makeDropdown()
         return #others
     end
 
+    local function closeDropdown()
+        if not isOpen then return end
+        isOpen = false
+        local _, _, w = getDropGeometry()
+        tween(arrow, {Rotation = 0})
+        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w, 0)}):Play()
+        task.delay(0.25, function() if not isOpen then dropList.Visible = false end end)
+    end
+
+    local function openDropdown()
+        if isOpen then return end
+        isOpen = true
+        local count = refreshList()
+        local h = math.min(count * 46 + 12, 200)
+        local x, y, w = getDropGeometry(h)
+        dropList.Position = UDim2.fromOffset(x, y)
+        dropList.Size     = UDim2.fromOffset(w, 0)
+        dropList.Visible  = true
+        tween(arrow, {Rotation = 180})
+        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w, h)}):Play()
+    end
+
     mainBtn.MouseButton1Click:Connect(function()
-        isOpen = not isOpen
-        if isOpen then
-            local count = refreshList()
-            local h = math.min(count * 46 + 12, 200)
-            local x, y, w = getDropGeometry()
-            dropList.Position = UDim2.fromOffset(x, y)
-            dropList.Size     = UDim2.fromOffset(w, 0)
-            dropList.Visible  = true
-            tween(arrow, {Rotation = 180})
-            TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w, h)}):Play()
-        else
-            local _, _, w = getDropGeometry()
-            tween(arrow, {Rotation = 0})
-            TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w, 0)}):Play()
-            task.delay(0.25, function() if not isOpen then dropList.Visible = false end end)
+        if isOpen then closeDropdown() else openDropdown() end
+    end)
+
+    -- Clic en dehors = fermeture
+    UserInputService.InputBegan:Connect(function(inp)
+        if not isOpen then return end
+        if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+        local mx, my = inp.Position.X, inp.Position.Y
+        -- Vérifie si le clic est dans le dropList
+        local dp = dropList.AbsolutePosition
+        local ds = dropList.AbsoluteSize
+        local inDrop = mx >= dp.X and mx <= dp.X + ds.X and my >= dp.Y and my <= dp.Y + ds.Y
+        -- Vérifie si le clic est dans le mainBtn
+        local cp = container.AbsolutePosition
+        local cs = container.AbsoluteSize
+        local inBtn = mx >= cp.X and mx <= cp.X + cs.X and my >= cp.Y and my <= cp.Y + cs.Y
+        if not inDrop and not inBtn then
+            closeDropdown()
         end
     end)
 
