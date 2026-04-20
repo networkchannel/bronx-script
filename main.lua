@@ -195,15 +195,15 @@ local function makeDropdown()
     mainBtn.ZIndex = 13
     mainBtn.Parent = container
 
+    -- dropList directement dans Main pour éviter le clipping du ScrollingFrame
     local dropList = Instance.new("Frame")
-    dropList.Size = UDim2.new(1, 0, 0, 0)
-    dropList.Position = UDim2.fromOffset(0, 54)
+    dropList.Size = UDim2.new(0, 0, 0, 0)
     dropList.BackgroundColor3 = Color3.fromRGB(18, 22, 32)
     dropList.BorderSizePixel = 0
     dropList.ClipsDescendants = true
     dropList.Visible = false
-    dropList.ZIndex = 20
-    dropList.Parent = container
+    dropList.ZIndex = 50
+    dropList.Parent = Main
     corner(12, dropList)
     stroke(Color3.fromRGB(50, 60, 85), 1, 0, dropList)
 
@@ -220,6 +220,14 @@ local function makeDropdown()
     dPad.Parent = dropList
 
     local isOpen = false
+
+    -- Met à jour la position absolue du dropdown selon celle du container
+    local function updateDropPos(h)
+        local absPos = container.AbsolutePosition
+        local absSize = container.AbsoluteSize
+        dropList.Position = UDim2.fromOffset(absPos.X, absPos.Y + absSize.Y + 4)
+        dropList.Size = UDim2.fromOffset(absSize.X, h)
+    end
 
     local function refreshList()
         for _, c in ipairs(dropList:GetChildren()) do
@@ -240,7 +248,7 @@ local function makeDropdown()
             pBtn.Font = Enum.Font.GothamMedium
             pBtn.TextXAlignment = Enum.TextXAlignment.Left
             pBtn.AutoButtonColor = false
-            pBtn.ZIndex = 21
+            pBtn.ZIndex = 51
             pBtn.Parent = dropList
             corner(8, pBtn)
 
@@ -264,14 +272,15 @@ local function makeDropdown()
         if isOpen then
             local count = refreshList()
             local h = math.min(count * 42 + 12, 200)
+            updateDropPos(0)
             dropList.Visible = true
-            tween(dropList, {Size = UDim2.new(1, 0, 0, h)})
-            tween(container, {Size = UDim2.new(1, 0, 0, 50 + h + 4)})
             tween(arrow, {Rotation = 180})
+            -- Tween manuel de la hauteur
+            local goal = UDim2.fromOffset(container.AbsoluteSize.X, h)
+            TweenService:Create(dropList, TI, {Size = goal}):Play()
         else
-            tween(dropList, {Size = UDim2.new(1, 0, 0, 0)})
-            tween(container, {Size = UDim2.new(1, 0, 0, 50)})
             tween(arrow, {Rotation = 0})
+            TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(container.AbsoluteSize.X, 0)}):Play()
             task.delay(0.25, function() dropList.Visible = false end)
         end
     end)
@@ -314,29 +323,57 @@ end)
 -- ESP
 local espObjects = {}
 
+-- Couleur unique par joueur basée sur son nom
+local function playerColor(p)
+    local h = 0
+    for i = 1, #p.Name do h = (h + string.byte(p.Name, i)) % 360 end
+    return Color3.fromHSV(h / 360, 0.75, 1)
+end
+
 local function createESP(p)
     if espObjects[p] then return end
+    local col = playerColor(p)
+
     local function line()
         local f = Instance.new("Frame")
-        f.BackgroundColor3 = ACCENT
+        f.BackgroundColor3 = col
         f.BorderSizePixel = 0
         f.ZIndex = 5
         f.Parent = Gui
         return f
     end
+
+    -- Nom du joueur (centré au-dessus de la box)
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.TextColor3 = Color3.fromRGB(255,255,255)
+    nameLbl.BackgroundColor3 = Color3.fromRGB(10, 12, 18)
+    nameLbl.BackgroundTransparency = 0.3
+    nameLbl.TextColor3 = col
     nameLbl.TextSize = 13
     nameLbl.Font = Enum.Font.GothamBold
     nameLbl.Text = p.Name
-    nameLbl.TextStrokeTransparency = 0
-    nameLbl.Size = UDim2.fromOffset(150, 18)
+    nameLbl.TextStrokeTransparency = 0.5
+    nameLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLbl.Size = UDim2.fromOffset(120, 20)
     nameLbl.ZIndex = 6
     nameLbl.Parent = Gui
+    corner(4, nameLbl)
 
+    -- Distance (sous la box)
+    local distLbl = Instance.new("TextLabel")
+    distLbl.BackgroundTransparency = 1
+    distLbl.TextColor3 = Color3.fromRGB(200, 200, 210)
+    distLbl.TextSize = 11
+    distLbl.Font = Enum.Font.Gotham
+    distLbl.Text = ""
+    distLbl.TextStrokeTransparency = 0.4
+    distLbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    distLbl.Size = UDim2.fromOffset(80, 16)
+    distLbl.ZIndex = 6
+    distLbl.Parent = Gui
+
+    -- Barre HP (à gauche de la box)
     local hpBg = Instance.new("Frame")
-    hpBg.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
+    hpBg.BackgroundColor3 = Color3.fromRGB(15, 17, 22)
     hpBg.BorderSizePixel = 0
     hpBg.ZIndex = 5
     hpBg.Parent = Gui
@@ -349,7 +386,7 @@ local function createESP(p)
     hpBar.Parent = hpBg
     corner(3, hpBar)
 
-    espObjects[p] = {t=line(), b=line(), l=line(), r=line(), name=nameLbl, hbg=hpBg, hbar=hpBar}
+    espObjects[p] = {t=line(), b=line(), l=line(), r=line(), name=nameLbl, dist=distLbl, hbg=hpBg, hbar=hpBar, col=col}
 end
 
 local function removeESP(p)
@@ -357,6 +394,10 @@ local function removeESP(p)
     if not o then return end
     for _, v in pairs(o) do pcall(function() v:Destroy() end) end
     espObjects[p] = nil
+end
+
+local function hideAll(o)
+    for _, v in pairs(o) do pcall(function() v.Visible = false end) end
 end
 
 local function updateESP()
@@ -368,29 +409,51 @@ local function updateESP()
         local char = p.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if not root or not hum or hum.Health <= 0 then
-            for _, v in pairs(o) do pcall(function() v.Visible = false end) end
-            continue
-        end
+        if not root or not hum or hum.Health <= 0 then hideAll(o); continue end
+
         local head = char:FindFirstChild("Head")
-        local topW = (head and head.Position or root.Position) + Vector3.new(0, 1, 0)
+        local topW = (head and head.Position or root.Position) + Vector3.new(0, 0.7, 0)
         local botW = root.Position - Vector3.new(0, 3, 0)
         local ts, tv = Cam:WorldToViewportPoint(topW)
         local bs = Cam:WorldToViewportPoint(botW)
-        if not tv then for _, v in pairs(o) do pcall(function() v.Visible = false end) end continue end
+        if not tv then hideAll(o); continue end
+
         local h = math.abs(bs.Y - ts.Y)
-        local w = h * 0.45
-        local x1, x2, y1, y2 = ts.X - w/2, ts.X + w/2, ts.Y, bs.Y
-        local T = 2
-        o.t.Size = UDim2.fromOffset(w, T); o.t.Position = UDim2.fromOffset(x1, y1); o.t.Visible = true
-        o.b.Size = UDim2.fromOffset(w, T); o.b.Position = UDim2.fromOffset(x1, y2); o.b.Visible = true
-        o.l.Size = UDim2.fromOffset(T, h); o.l.Position = UDim2.fromOffset(x1, y1); o.l.Visible = true
-        o.r.Size = UDim2.fromOffset(T, h); o.r.Position = UDim2.fromOffset(x2, y1); o.r.Visible = true
-        o.name.Position = UDim2.fromOffset(ts.X - 75, y1 - 22); o.name.Visible = true
+        local w = math.max(h * 0.5, 20)
+        local cx = ts.X
+        local x1, x2 = cx - w/2, cx + w/2
+        local y1, y2 = ts.Y, bs.Y
+        local T = 1.5
+
+        -- Box
+        o.t.Size = UDim2.fromOffset(w + T*2, T); o.t.Position = UDim2.fromOffset(x1 - T, y1); o.t.Visible = true
+        o.b.Size = UDim2.fromOffset(w + T*2, T); o.b.Position = UDim2.fromOffset(x1 - T, y2); o.b.Visible = true
+        o.l.Size = UDim2.fromOffset(T, h);        o.l.Position = UDim2.fromOffset(x1 - T, y1); o.l.Visible = true
+        o.r.Size = UDim2.fromOffset(T, h);        o.r.Position = UDim2.fromOffset(x2, y1);     o.r.Visible = true
+
+        -- Nom centré au-dessus
+        o.name.Position = UDim2.fromOffset(cx - 60, y1 - 24); o.name.Visible = true
+
+        -- Distance centrée en dessous
+        if myRoot then
+            local dist = (root.Position - myRoot.Position).Magnitude
+            o.dist.Text = string.format("%.0fm", dist)
+            o.dist.Position = UDim2.fromOffset(cx - 40, y2 + 4)
+            o.dist.Visible = true
+        end
+
+        -- Barre HP à gauche (7px de large)
+        local HP_W = 4
         local hp = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-        o.hbg.Size = UDim2.fromOffset(5, h); o.hbg.Position = UDim2.fromOffset(x1 - 10, y1); o.hbg.Visible = true
-        o.hbar.Size = UDim2.new(1, 0, hp, 0); o.hbar.Position = UDim2.new(0, 0, 1 - hp, 0)
-        o.hbar.BackgroundColor3 = hp > 0.6 and Color3.fromRGB(70,230,90) or hp > 0.3 and Color3.fromRGB(255,190,0) or Color3.fromRGB(230,70,70)
+        o.hbg.Size = UDim2.fromOffset(HP_W, h)
+        o.hbg.Position = UDim2.fromOffset(x1 - HP_W - 5, y1)
+        o.hbg.Visible = true
+        o.hbar.Size = UDim2.new(1, 0, hp, 0)
+        o.hbar.Position = UDim2.new(0, 0, 1 - hp, 0)
+        o.hbar.BackgroundColor3 = hp > 0.6 and Color3.fromRGB(80, 230, 100)
+            or hp > 0.3 and Color3.fromRGB(255, 200, 0)
+            or Color3.fromRGB(230, 60, 60)
+        o.hbar.Visible = true
     end
 end
 
