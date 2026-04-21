@@ -710,7 +710,11 @@ makeBtn(pageTeleport, "🔫", "Go to Gun Store", 1, function()
     local r = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if r then r.CFrame = CFrame.new(6590.24, 3580.35, 2276.79) end
 end)
-makeDropdown(pageTeleport, 2)
+makeBtn(pageTeleport, "🚗", "TP to Car", 2, function()
+    local r = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+    if r then r.CFrame = CFrame.new(5626.6, 3580.4, 2309.6) end
+end)
+makeDropdown(pageTeleport, 3)
 makeFollowDropdown(pageCombat, 2)
 
 -- Drag
