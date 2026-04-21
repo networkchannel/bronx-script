@@ -87,7 +87,7 @@ local activeTab = nil
 
 local function makeTab(name, icon)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1/#{"Combat","Movement","Teleport"},0,1,0)
+    btn.Size = UDim2.new(0.25,0,1,0) -- recalculé après création de tous les onglets
     btn.BackgroundTransparency = 1
     btn.Text = icon.." "..name
     btn.TextColor3 = Color3.fromRGB(120,130,160)
@@ -134,6 +134,7 @@ end
 local pageCombat   = makeTab("Combat",   "👁️")
 local pageMovement = makeTab("Movement", "🚀")
 local pageTeleport = makeTab("Teleport", "⚡")
+local pageFarm     = makeTab("Farm",     "🌿")
 
 for _, t in ipairs(tabs) do
     t.btn.Size = UDim2.new(1/#tabs, 0, 1, 0)
@@ -254,7 +255,7 @@ local function makeSlider(parent, icon, txt, order, minV, maxV, defaultV, onChan
     end)
 end
 
--- ===== DROPDOWN TP =====
+-- ===== DROPDOWN TP (inline, plus joli) =====
 local dropListGlobal = nil
 
 local function makeDropdown(parent, order)
@@ -405,7 +406,7 @@ local function makeDropdown(parent, order)
     end)
 end
 
--- ===== LOOP KILL DROPDOWN (FIXED) =====
+-- ===== FOLLOW DROPDOWN =====
 local followTarget     = nil
 local followConn       = nil
 local followActive     = false
@@ -513,14 +514,8 @@ local function makeFollowDropdown(parent, order)
         stopFollow()
     end)
 
-    -- ============================================================
-    -- FIX : LOOP KILL avec re-TP immédiat après mort du NPC
-    -- ============================================================
     local function startFollow(player)
-        -- Arrête toute session précédente
-        followActive = false
-        if followConn then followConn:Disconnect(); followConn = nil end
-
+        stopFollow()
         followTarget = player
         followActive = true
         statusLbl.Text       = "► "..player.Name
@@ -528,99 +523,56 @@ local function makeFollowDropdown(parent, order)
         stopBtn.Visible      = true
         tw(container, {BackgroundColor3 = Color3.fromRGB(20,28,46)})
 
-        -- Thread principal du loop kill
+        followConn = RunService.Heartbeat:Connect(function()
+            if not followTarget or not followTarget.Parent then stopFollow(); return end
+            local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            local tChar  = followTarget.Character
+            local tRoot  = tChar and tChar:FindFirstChild("HumanoidRootPart")
+            local tHum   = tChar and tChar:FindFirstChildOfClass("Humanoid")
+            if not (myRoot and tRoot) then return end
+            if not tHum or tHum.Health <= 0 then stopFollow(); return end
+            local dist = (myRoot.Position - tRoot.Position).Magnitude
+            if dist > 1.5 then
+                local targetCF = tRoot.CFrame * CFrame.new(0, 0, 1.5)
+                myRoot.CFrame = CFrame.new(targetCF.Position, tRoot.Position)
+            end
+        end)
+
         task.spawn(function()
             while followActive do
-                -- Vérifie que la cible existe toujours
-                if not followTarget or not followTarget.Parent then
-                    stopFollow()
-                    break
-                end
-
-                local myChar = LP.Character
-                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-                local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
-
-                if not myRoot or not myHum or myHum.Health <= 0 then
-                    task.wait(0.1)
-                    continue
-                end
-
-                local tChar = followTarget.Character
-                local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-                local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
-
-                -- Si la cible est morte ou son personnage absent → attendre le respawn et re-TP
-                if not tChar or not tRoot or not tHum or tHum.Health <= 0 then
-                    -- Attendre que le personnage réapparaisse
-                    local respawnChar = nil
-                    local timeout = 0
-                    repeat
-                        task.wait(0.05)
-                        timeout += 0.05
-                        respawnChar = followTarget.Character
-                        if not followActive then break end
-                        if not followTarget or not followTarget.Parent then break end
-                    until (respawnChar
-                        and respawnChar:FindFirstChild("HumanoidRootPart")
-                        and respawnChar:FindFirstChildOfClass("Humanoid")
-                        and respawnChar:FindFirstChildOfClass("Humanoid").Health > 0)
-                        or timeout > 15
-
-                    if not followActive then break end
-                    if not followTarget or not followTarget.Parent then stopFollow(); break end
-
-                    -- Re-TP immédiat sur le NPC après son respawn
-                    local newRoot = followTarget.Character and followTarget.Character:FindFirstChild("HumanoidRootPart")
-                    if newRoot then
-                        local mr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                        if mr then
-                            mr.CFrame = CFrame.new(newRoot.Position + Vector3.new(0, 0, 1.5))
+                local char   = LP.Character
+                local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+                if char and myRoot and followTarget then
+                    local tool = char:FindFirstChild("Fists")
+                    if not tool then
+                        local bp = LP:FindFirstChild("Backpack")
+                        if bp then
+                            local t = bp:FindFirstChild("Fists")
+                            if t then
+                                local hum = char:FindFirstChildOfClass("Humanoid")
+                                if hum then hum:EquipTool(t) end
+                                task.wait(0.15)
+                                tool = char:FindFirstChild("Fists")
+                            end
                         end
                     end
-
-                    task.wait(0.1)
-                    continue
-                end
-
-                -- Re-TP si trop loin (> 2 studs)
-                local dist = (myRoot.Position - tRoot.Position).Magnitude
-                if dist > 2 then
-                    myRoot.CFrame = CFrame.new(tRoot.Position + Vector3.new(0, 0, 1.5))
-                end
-
-                -- Face la cible
-                myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
-
-                -- Équipe et active l'outil
-                local tool = myChar:FindFirstChild("Fists")
-                if not tool then
-                    local bp = LP:FindFirstChild("Backpack")
-                    if bp then
-                        local t = bp:FindFirstChild("Fists")
-                        if t then
-                            local hum = myChar:FindFirstChildOfClass("Humanoid")
-                            if hum then hum:EquipTool(t) end
-                            task.wait(0.15)
-                            tool = myChar:FindFirstChild("Fists")
+                    local tChar = followTarget.Character
+                    local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                    local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
+                    if tool and tRoot and tHum and tHum.Health > 0 then
+                        myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
+                        local remote = tool:FindFirstChildOfClass("RemoteEvent")
+                        if remote then
+                            remote:FireServer(tRoot.Position)
+                        else
+                            tool:Activate()
                         end
                     end
                 end
-
-                if tool then
-                    local remote = tool:FindFirstChildOfClass("RemoteEvent")
-                    if remote then
-                        remote:FireServer(tRoot.Position)
-                    else
-                        tool:Activate()
-                    end
-                end
-
                 task.wait(SHOOT_RATE)
             end
         end)
     end
-    -- ============================================================
 
     local function refreshList()
         for _, c in ipairs(dropList:GetChildren()) do
@@ -743,6 +695,41 @@ makeSlider(pageMovement, "💨", "Speed  ×%.1f", 2, 1, 10, 1, function(val)
     local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum.WalkSpeed = 16 * val end
 end)
+
+-- ===== NO CLIP =====
+local noclipConn = nil
+local function setNoClip(enabled)
+    if enabled then
+        noclipConn = RunService.Stepped:Connect(function()
+            local char = LP.Character
+            if not char then return end
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end)
+    else
+        if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
+        local char = LP.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+local noclipPill, noclipOn = makeToggle(pageMovement, "👻", "No Clip", 3)
+noclipPill.MouseButton1Click:Connect(function()
+    task.defer(function() setNoClip(noclipOn()) end)
+end)
+LP.CharacterAdded:Connect(function()
+    if noclipOn() then task.wait(0.5); setNoClip(true) end
+end)
+-- ===== FIN NO CLIP =====
 
 -- Onglet TELEPORT
 makeBtn(pageTeleport, "🔫", "Go to Gun Store", 1, function()
@@ -867,6 +854,224 @@ espPill.MouseButton1Click:Connect(function()
         end
     end)
 end)
+
+-- ===== ONGLET FARM =====
+
+-- Variables du farm
+local DISTANCE_ACHAT  = -2
+local DISTANCE_CUISSON = -1
+local DISTANCE_VENTE  = -2
+local farmActive = false
+
+local function getFarmRoot()
+    local char = LP.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function getSpecificPotato()
+    local mots = {"patate", "pomme", "potato"}
+    local char = LP.Character
+    local backpack = LP:FindFirstChild("Backpack")
+    local function check(container)
+        if not container then return nil end
+        for _, item in ipairs(container:GetChildren()) do
+            if item:IsA("Tool") then
+                local nom = string.lower(item.Name)
+                for _, mot in ipairs(mots) do
+                    if string.find(nom, mot) then return item end
+                end
+            end
+        end
+        return nil
+    end
+    return check(backpack) or check(char)
+end
+
+local function getStoves()
+    local stoves = {}
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and string.find(string.lower(obj.Parent.Name), "cook") then
+            table.insert(stoves, obj)
+        end
+    end
+    return stoves
+end
+
+local function farmTeleportTo(prompt, distance)
+    local root = getFarmRoot()
+    if not root then return end
+    root.CFrame = prompt.Parent.CFrame * CFrame.new(0, 1, distance)
+    root.CFrame = CFrame.lookAt(root.Position, Vector3.new(
+        prompt.Parent.Position.X, root.Position.Y, prompt.Parent.Position.Z))
+    task.wait(0.5)
+end
+
+local function farmHoldPrompt(prompt)
+    if not farmActive then return end
+    Cam.CFrame = CFrame.lookAt(Cam.CFrame.Position, prompt.Parent.Position)
+    local origLOS  = prompt.RequiresLineOfSight
+    local origDist = prompt.MaxActivationDistance
+    prompt.RequiresLineOfSight = false
+    prompt.MaxActivationDistance = 50
+    task.wait(0.1)
+    prompt:InputHoldBegin()
+    task.wait(prompt.HoldDuration + 0.2)
+    prompt:InputHoldEnd()
+    prompt.RequiresLineOfSight = origLOS
+    prompt.MaxActivationDistance = origDist
+end
+
+local function runFarmCycle()
+    local ok, err = pcall(function()
+        local root = getFarmRoot()
+        if not root then return end
+
+        -- Récupère les prompts à chaque cycle (au cas où le workspace change)
+        local potatoPrompt = workspace:FindFirstChild("GUNS") and
+            workspace.GUNS:FindFirstChild("Potato") and
+            workspace.GUNS.Potato:FindFirstChild("Prompt") and
+            workspace.GUNS.Potato.Prompt:FindFirstChildOfClass("ProximityPrompt")
+        local sellPrompt = workspace:FindFirstChild("Sell") and
+            workspace.Sell:FindFirstChildOfClass("ProximityPrompt")
+        if not potatoPrompt or not sellPrompt then
+            warn("[Farm] Prompts introuvables dans le workspace.")
+            return
+        end
+
+        -- 1. ACHAT
+        if not farmActive then return end
+        farmTeleportTo(potatoPrompt, DISTANCE_ACHAT)
+        if not farmActive then return end
+        farmHoldPrompt(potatoPrompt)
+
+        -- 2. ATTENTE patate crue
+        if not farmActive then return end
+        local rawPotato = nil
+        for i = 1, 10 do
+            if not farmActive then return end
+            task.wait(0.5)
+            rawPotato = getSpecificPotato()
+            if rawPotato then break end
+        end
+        if not rawPotato then warn("[Farm] Patate crue non reçue."); return end
+        rawPotato.Parent = LP.Character
+
+        -- 3. CUISSON
+        if not farmActive then return end
+        local cookedSuccess = false
+        local stoves = getStoves()
+        for _, stovePrompt in ipairs(stoves) do
+            if not farmActive then return end
+            farmTeleportTo(stovePrompt, DISTANCE_CUISSON)
+            if not farmActive then return end
+            root = getFarmRoot()
+            if root then root.Anchored = true end
+            farmHoldPrompt(stovePrompt)
+            task.wait(1.5)
+            if rawPotato.Parent ~= LP.Character and rawPotato.Parent ~= LP:FindFirstChild("Backpack") then
+                cookedSuccess = true
+                break
+            else
+                rawPotato.Parent = LP.Character
+                if root then root.Anchored = false end
+            end
+        end
+        if not cookedSuccess then
+            if root then root.Anchored = false end
+            warn("[Farm] Impossible de cuire.")
+            return
+        end
+
+        -- 4. ATTENTE patate cuite
+        if not farmActive then
+            if root then root.Anchored = false end
+            return
+        end
+        local cookedPotato = nil
+        local timer = 0
+        while not cookedPotato do
+            if not farmActive then
+                if root then root.Anchored = false end
+                return
+            end
+            task.wait(0.5); timer += 0.5
+            if timer > 9 then cookedPotato = getSpecificPotato() end
+            if timer > 30 then
+                if root then root.Anchored = false end
+                warn("[Farm] Timeout cuisson.")
+                return
+            end
+        end
+        cookedPotato.Parent = LP.Character
+        if root then root.Anchored = false end
+
+        -- 5. VENTE
+        if not farmActive then return end
+        farmTeleportTo(sellPrompt, DISTANCE_VENTE)
+        if not farmActive then return end
+        farmHoldPrompt(sellPrompt)
+    end)
+    if not ok then warn("[Farm] Erreur cycle : " .. tostring(err)) end
+end
+
+-- Toggle Farm UI avec label de statut
+local farmRow = Instance.new("Frame")
+farmRow.Size = UDim2.new(1,0,0,50); farmRow.BackgroundColor3 = ROW_BG
+farmRow.BorderSizePixel = 0; farmRow.LayoutOrder = 1; farmRow.ZIndex = 12; farmRow.Parent = pageFarm
+corner(12, farmRow)
+
+local farmIco = lbl("🥔", 20, ACCENT, Enum.Font.GothamBold, farmRow)
+farmIco.Size = UDim2.fromOffset(36,50); farmIco.Position = UDim2.fromOffset(12,0); farmIco.ZIndex = 13
+
+local farmLbl = lbl("Auto Farm Potato", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, farmRow)
+farmLbl.Size = UDim2.new(1,-120,1,0); farmLbl.Position = UDim2.fromOffset(54,0)
+farmLbl.TextXAlignment = Enum.TextXAlignment.Left; farmLbl.ZIndex = 13
+
+local farmPill = Instance.new("TextButton")
+farmPill.Size = UDim2.fromOffset(48,26); farmPill.Position = UDim2.new(1,-58,0.5,-13)
+farmPill.BackgroundColor3 = Color3.fromRGB(35,40,55)
+farmPill.BorderSizePixel = 0; farmPill.Text = ""; farmPill.ZIndex = 13; farmPill.Parent = farmRow
+corner(13, farmPill)
+
+local farmKnob = Instance.new("Frame")
+farmKnob.Size = UDim2.fromOffset(20,20); farmKnob.Position = UDim2.fromOffset(3,3)
+farmKnob.BackgroundColor3 = Color3.fromRGB(90,100,120)
+farmKnob.BorderSizePixel = 0; farmKnob.ZIndex = 14; farmKnob.Parent = farmPill
+corner(10, farmKnob)
+
+-- Label statut sous le toggle
+local farmStatus = lbl("En attente...", 11, Color3.fromRGB(100,110,140), Enum.Font.Gotham, pageFarm)
+farmStatus.Size = UDim2.new(1,0,0,20); farmStatus.LayoutOrder = 2
+farmStatus.TextXAlignment = Enum.TextXAlignment.Center; farmStatus.ZIndex = 12
+
+farmPill.MouseButton1Click:Connect(function()
+    farmActive = not farmActive
+    if farmActive then
+        tw(farmPill, {BackgroundColor3 = Color3.fromRGB(80, 200, 80)})
+        tw(farmKnob, {Position = UDim2.fromOffset(25,3), BackgroundColor3 = Color3.fromRGB(255,255,255)})
+        farmLbl.TextColor3 = Color3.fromRGB(100,255,100)
+        -- Boucle farm dans un thread séparé
+        task.spawn(function()
+            while farmActive do
+                farmStatus.Text = "🔄 Cycle en cours..."
+                runFarmCycle()
+                if farmActive then
+                    farmStatus.Text = "✅ Cycle terminé ! Relance..."
+                    task.wait(0.5)
+                end
+            end
+            farmStatus.Text = "⏹ Arrêté."
+        end)
+    else
+        tw(farmPill, {BackgroundColor3 = Color3.fromRGB(35,40,55)})
+        tw(farmKnob, {Position = UDim2.fromOffset(3,3), BackgroundColor3 = Color3.fromRGB(90,100,120)})
+        farmLbl.TextColor3 = Color3.fromRGB(230,230,240)
+        -- Débloque le perso si anchored
+        local root = getFarmRoot()
+        if root then root.Anchored = false end
+    end
+end)
+-- ===== FIN FARM =====
 
 -- Entrée animée
 Main.Position = UDim2.new(0.5,-W/2,-0.5,0)
