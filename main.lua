@@ -254,13 +254,26 @@ local function makeSlider(parent, icon, txt, order, minV, maxV, defaultV, onChan
     end)
 end
 
--- Dropdown TP
+-- ===== DROPDOWN TP (inline, plus joli) =====
 local dropListGlobal = nil
 
 local function makeDropdown(parent, order)
+    -- Container principal avec hauteur auto-extensible
+    local outerFrame = Instance.new("Frame")
+    outerFrame.Size = UDim2.new(1,0,0,50)
+    outerFrame.BackgroundTransparency = 1
+    outerFrame.BorderSizePixel = 0
+    outerFrame.LayoutOrder = order
+    outerFrame.ZIndex = 12
+    outerFrame.ClipsDescendants = false
+    outerFrame.Parent = parent
+
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1,0,0,50); container.BackgroundColor3 = ROW_BG
-    container.BorderSizePixel = 0; container.LayoutOrder = order; container.ZIndex = 12; container.Parent = parent
+    container.Size = UDim2.new(1,0,0,50)
+    container.BackgroundColor3 = ROW_BG
+    container.BorderSizePixel = 0
+    container.ZIndex = 12
+    container.Parent = outerFrame
     corner(12, container)
 
     local ico = lbl("👤", 20, ACCENT, Enum.Font.GothamBold, container)
@@ -273,17 +286,22 @@ local function makeDropdown(parent, order)
     local arrow = lbl("▼", 12, Color3.fromRGB(120,130,160), Enum.Font.GothamBold, container)
     arrow.Size = UDim2.fromOffset(30,50); arrow.Position = UDim2.new(1,-36,0,0); arrow.ZIndex = 13
 
-    local mainBtn = Instance.new("TextButton")
-    mainBtn.Size = UDim2.new(1,0,0,50); mainBtn.BackgroundTransparency = 1
-    mainBtn.Text = ""; mainBtn.ZIndex = 14; mainBtn.Parent = container
-
+    -- Dropdown inline, attaché au outerFrame
     local dropList = Instance.new("ScrollingFrame")
-    dropList.BackgroundColor3 = Color3.fromRGB(18,22,32); dropList.BorderSizePixel = 0
-    dropList.ScrollBarThickness = 3; dropList.ScrollBarImageColor3 = ACCENT
-    dropList.CanvasSize = UDim2.new(0,0,0,0); dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    dropList.ClipsDescendants = true; dropList.Visible = false
-    dropList.ZIndex = 100; dropList.Size = UDim2.fromOffset(0,0); dropList.Parent = Gui
-    corner(12, dropList); stroke(Color3.fromRGB(60,75,110), 1, 0, dropList)
+    dropList.BackgroundColor3 = Color3.fromRGB(18,22,32)
+    dropList.BorderSizePixel = 0
+    dropList.ScrollBarThickness = 3
+    dropList.ScrollBarImageColor3 = ACCENT
+    dropList.CanvasSize = UDim2.new(0,0,0,0)
+    dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    dropList.ClipsDescendants = true
+    dropList.Visible = false
+    dropList.ZIndex = 50
+    dropList.Size = UDim2.new(1,0,0,0)
+    dropList.Position = UDim2.new(0,0,0,56)
+    dropList.Parent = outerFrame
+    corner(12, dropList)
+    stroke(Color3.fromRGB(60,75,110), 1, 0, dropList)
     dropListGlobal = dropList
 
     local dL = Instance.new("UIListLayout"); dL.Padding = UDim.new(0,3); dL.Parent = dropList
@@ -293,21 +311,17 @@ local function makeDropdown(parent, order)
 
     local isOpen = false
 
-    local function getPos(h)
-        local mp = Main.AbsolutePosition; local ms = Main.AbsoluteSize
-        local vp = Cam.ViewportSize
-        local y = mp.Y + ms.Y + 6
-        if y + h > vp.Y then y = mp.Y - h - 6 end
-        return mp.X, y, ms.X
-    end
-
     local function close()
         if not isOpen then return end
         isOpen = false
         tw(arrow, {Rotation = 0})
-        local x,_,w = getPos(0)
-        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w,0)}):Play()
-        task.delay(0.25, function() if not isOpen then dropList.Visible = false end end)
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,0)}):Play()
+        task.delay(0.25, function()
+            if not isOpen then
+                dropList.Visible = false
+                outerFrame.Size = UDim2.new(1,0,0,50)
+            end
+        end)
     end
 
     local function refreshList()
@@ -319,11 +333,17 @@ local function makeDropdown(parent, order)
             if p == LP then continue end
             count += 1
             local pBtn = Instance.new("TextButton")
-            pBtn.Size = UDim2.new(1,0,0,40); pBtn.BackgroundColor3 = Color3.fromRGB(25,30,42)
-            pBtn.BorderSizePixel = 0; pBtn.Text = "  👤  "..p.Name
-            pBtn.TextColor3 = Color3.fromRGB(220,220,235); pBtn.TextSize = 13
-            pBtn.Font = Enum.Font.GothamMedium; pBtn.TextXAlignment = Enum.TextXAlignment.Left
-            pBtn.AutoButtonColor = false; pBtn.ZIndex = 101; pBtn.Parent = dropList
+            pBtn.Size = UDim2.new(1,0,0,40)
+            pBtn.BackgroundColor3 = Color3.fromRGB(25,30,42)
+            pBtn.BorderSizePixel = 0
+            pBtn.Text = "  👤  "..p.Name
+            pBtn.TextColor3 = Color3.fromRGB(220,220,235)
+            pBtn.TextSize = 13
+            pBtn.Font = Enum.Font.GothamMedium
+            pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            pBtn.AutoButtonColor = false
+            pBtn.ZIndex = 51
+            pBtn.Parent = dropList
             corner(8, pBtn)
             local player = p
             pBtn.MouseEnter:Connect(function() tw(pBtn, {BackgroundColor3 = Color3.fromRGB(40,50,72)}) end)
@@ -340,71 +360,131 @@ local function makeDropdown(parent, order)
         return count
     end
 
+    -- Redimensionne le dropdown selon le nb de joueurs actuels (utilisé live)
+    local function resizeToCount(count)
+        local h = math.min(count * 46 + 12, 200)
+        outerFrame.Size = UDim2.new(1,0,0,50 + 6 + h)
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
+    end
+
+    local mainBtn = Instance.new("TextButton")
+    mainBtn.Size = UDim2.new(1,0,0,50)
+    mainBtn.BackgroundTransparency = 1
+    mainBtn.Text = ""
+    mainBtn.ZIndex = 14
+    mainBtn.Parent = container
+
     mainBtn.MouseButton1Click:Connect(function()
         if isOpen then close(); return end
         isOpen = true
         local count = refreshList()
         local h = math.min(count * 46 + 12, 200)
-        local x, y, w = getPos(h)
-        dropList.Position = UDim2.fromOffset(x,y); dropList.Size = UDim2.fromOffset(w,0)
-        dropList.Visible = true; tw(arrow, {Rotation = 180})
-        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w,h)}):Play()
+        outerFrame.Size = UDim2.new(1,0,0,50 + 6 + h)
+        dropList.Visible = true
+        tw(arrow, {Rotation = 180})
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
     end)
 
+    -- Fermer si clic en dehors
     UserInputService.InputBegan:Connect(function(inp)
         if not isOpen then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-        local mx,my = inp.Position.X, inp.Position.Y
-        local dp = dropList.AbsolutePosition; local ds = dropList.AbsoluteSize
-        local cp = container.AbsolutePosition; local cs = container.AbsoluteSize
-        if not (mx>=dp.X and mx<=dp.X+ds.X and my>=dp.Y and my<=dp.Y+ds.Y)
-        and not (mx>=cp.X and mx<=cp.X+cs.X and my>=cp.Y and my<=cp.Y+cs.Y) then
+        local mx, my = inp.Position.X, inp.Position.Y
+        local op = outerFrame.AbsolutePosition; local os = outerFrame.AbsoluteSize
+        if not (mx >= op.X and mx <= op.X + os.X and my >= op.Y and my <= op.Y + os.Y) then
             close()
         end
     end)
 
-    Players.PlayerAdded:Connect(function() if isOpen then refreshList() end end)
-    Players.PlayerRemoving:Connect(function() if isOpen then refreshList() end end)
+    -- Mise à jour live : refresh + resize si le dropdown est ouvert
+    Players.PlayerAdded:Connect(function()
+        if not isOpen then return end
+        local count = refreshList()
+        resizeToCount(count)
+    end)
+    Players.PlayerRemoving:Connect(function()
+        task.wait()  -- attendre que le joueur soit retiré de Players:GetPlayers()
+        if not isOpen then return end
+        local count = refreshList()
+        if count == 0 then close() else resizeToCount(count) end
+    end)
 end
 
--- ===== FOLLOW DROPDOWN avec Follow corrigé + Auto-shoot NPC =====
+-- ===== FOLLOW DROPDOWN (bug stopBtn corrigé) =====
 local followTarget     = nil
 local followConn       = nil
-local followActive     = false  -- flag booléen pour le loop auto-shoot
+local followActive     = false
 local followDropGlobal = nil
 
--- Cadence de tir configurable
-local SHOOT_RANGE  = 40   -- portée max en studs
-local SHOOT_DMG    = 10   -- dégâts par tick
-local SHOOT_RATE   = 0.1  -- secondes entre chaque tick
+local SHOOT_RATE = 0.1
 
 local function makeFollowDropdown(parent, order)
+    local outerFrame = Instance.new("Frame")
+    outerFrame.Size = UDim2.new(1,0,0,50)
+    outerFrame.BackgroundTransparency = 1
+    outerFrame.BorderSizePixel = 0
+    outerFrame.LayoutOrder = order
+    outerFrame.ZIndex = 12
+    outerFrame.ClipsDescendants = false
+    outerFrame.Parent = parent
+
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1,0,0,50); container.BackgroundColor3 = ROW_BG
-    container.BorderSizePixel = 0; container.LayoutOrder = order; container.ZIndex = 12; container.Parent = parent
+    container.Size = UDim2.new(1,0,0,50)
+    container.BackgroundColor3 = ROW_BG
+    container.BorderSizePixel = 0
+    container.ZIndex = 12
+    container.Parent = outerFrame
     corner(12, container)
 
     local ico = lbl("🎯", 20, ACCENT, Enum.Font.GothamBold, container)
     ico.Size = UDim2.fromOffset(36,50); ico.Position = UDim2.fromOffset(12,0); ico.ZIndex = 13
 
     local statusLbl = lbl("Loop Kill", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, container)
-    statusLbl.Size = UDim2.new(1,-80,1,0); statusLbl.Position = UDim2.fromOffset(54,0)
+    statusLbl.Size = UDim2.new(1,-130,1,0); statusLbl.Position = UDim2.fromOffset(54,0)
     statusLbl.TextXAlignment = Enum.TextXAlignment.Left; statusLbl.ZIndex = 13
+
+    -- FIX: stopBtn avec ZIndex plus haut et placé AVANT le mainBtn
+    local stopBtn = Instance.new("TextButton")
+    stopBtn.Size = UDim2.fromOffset(36,26)
+    stopBtn.Position = UDim2.new(1,-84,0.5,-13)
+    stopBtn.BackgroundColor3 = Color3.fromRGB(180,40,40)
+    stopBtn.BorderSizePixel = 0
+    stopBtn.Text = "⛔"
+    stopBtn.TextSize = 14
+    stopBtn.Font = Enum.Font.GothamBold
+    stopBtn.TextColor3 = Color3.fromRGB(255,255,255)
+    stopBtn.Visible = false
+    stopBtn.ZIndex = 20  -- ZIndex élevé pour passer au-dessus du mainBtn
+    stopBtn.Parent = container
+    corner(8, stopBtn)
 
     local arrow = lbl("▼", 12, Color3.fromRGB(120,130,160), Enum.Font.GothamBold, container)
     arrow.Size = UDim2.fromOffset(30,50); arrow.Position = UDim2.new(1,-36,0,0); arrow.ZIndex = 13
 
+    -- FIX: mainBtn ne couvre PAS la zone du stopBtn
     local mainBtn = Instance.new("TextButton")
-    mainBtn.Size = UDim2.new(1,0,0,50); mainBtn.BackgroundTransparency = 1
-    mainBtn.Text = ""; mainBtn.ZIndex = 14; mainBtn.Parent = container
+    mainBtn.Size = UDim2.new(1,-44,1,0)  -- s'arrête avant le bord droit (laisse place au stopBtn + arrow)
+    mainBtn.BackgroundTransparency = 1
+    mainBtn.Text = ""
+    mainBtn.ZIndex = 14
+    mainBtn.Parent = container
 
+    -- Dropdown inline
     local dropList = Instance.new("ScrollingFrame")
-    dropList.BackgroundColor3 = Color3.fromRGB(18,22,32); dropList.BorderSizePixel = 0
-    dropList.ScrollBarThickness = 3; dropList.ScrollBarImageColor3 = ACCENT
-    dropList.CanvasSize = UDim2.new(0,0,0,0); dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    dropList.ClipsDescendants = true; dropList.Visible = false
-    dropList.ZIndex = 100; dropList.Size = UDim2.fromOffset(0,0); dropList.Parent = Gui
-    corner(12, dropList); stroke(Color3.fromRGB(60,75,110), 1, 0, dropList)
+    dropList.BackgroundColor3 = Color3.fromRGB(18,22,32)
+    dropList.BorderSizePixel = 0
+    dropList.ScrollBarThickness = 3
+    dropList.ScrollBarImageColor3 = ACCENT
+    dropList.CanvasSize = UDim2.new(0,0,0,0)
+    dropList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    dropList.ClipsDescendants = true
+    dropList.Visible = false
+    dropList.ZIndex = 50
+    dropList.Size = UDim2.new(1,0,0,0)
+    dropList.Position = UDim2.new(0,0,0,56)
+    dropList.Parent = outerFrame
+    corner(12, dropList)
+    stroke(Color3.fromRGB(60,75,110), 1, 0, dropList)
     followDropGlobal = dropList
 
     local dL = Instance.new("UIListLayout"); dL.Padding = UDim.new(0,3); dL.Parent = dropList
@@ -414,46 +494,43 @@ local function makeFollowDropdown(parent, order)
 
     local isOpen = false
 
-    local function getPos(h)
-        local mp = Main.AbsolutePosition; local ms = Main.AbsoluteSize
-        local vp = Cam.ViewportSize
-        local y = mp.Y + ms.Y + 6
-        if y + h > vp.Y then y = mp.Y - h - 6 end
-        return mp.X, y, ms.X
-    end
-
     local function close()
         if not isOpen then return end
         isOpen = false
         tw(arrow, {Rotation = 0})
-        local x,_,w = getPos(0)
-        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w,0)}):Play()
-        task.delay(0.25, function() if not isOpen then dropList.Visible = false end end)
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,0)}):Play()
+        task.delay(0.25, function()
+            if not isOpen then
+                dropList.Visible = false
+                outerFrame.Size = UDim2.new(1,0,0,50)
+            end
+        end)
     end
 
     local function stopFollow()
-        followActive = false  -- coupe le loop auto-shoot
+        followActive = false
         if followConn then followConn:Disconnect(); followConn = nil end
         followTarget = nil
         statusLbl.Text       = "Loop Kill"
         statusLbl.TextColor3 = Color3.fromRGB(230,230,240)
+        stopBtn.Visible      = false
+        tw(container, {BackgroundColor3 = ROW_BG})
     end
 
-    local function isPlayerCharacter(model)
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p.Character == model then return true end
-        end
-        return false
-    end
+    -- FIX: connexion du stopBtn directement, sans interférence du mainBtn
+    stopBtn.MouseButton1Click:Connect(function()
+        stopFollow()
+    end)
 
     local function startFollow(player)
         stopFollow()
         followTarget = player
         followActive = true
-        statusLbl.Text       = "Following: "..player.Name
+        statusLbl.Text       = "► "..player.Name
         statusLbl.TextColor3 = ACCENT
+        stopBtn.Visible      = true
+        tw(container, {BackgroundColor3 = Color3.fromRGB(20,28,46)})
 
-        -- Follow : colle dans le dos à 1.5 studs, suit l'orientation du joueur
         followConn = RunService.Heartbeat:Connect(function()
             if not followTarget or not followTarget.Parent then stopFollow(); return end
             local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
@@ -461,7 +538,6 @@ local function makeFollowDropdown(parent, order)
             local tRoot  = tChar and tChar:FindFirstChild("HumanoidRootPart")
             local tHum   = tChar and tChar:FindFirstChildOfClass("Humanoid")
             if not (myRoot and tRoot) then return end
-            -- Stop si le NPC est mort
             if not tHum or tHum.Health <= 0 then stopFollow(); return end
             local dist = (myRoot.Position - tRoot.Position).Magnitude
             if dist > 1.5 then
@@ -470,13 +546,11 @@ local function makeFollowDropdown(parent, order)
             end
         end)
 
-        -- Auto-melee : FireServer en continu sur le RemoteEvent de Fists
         task.spawn(function()
             while followActive do
                 local char   = LP.Character
                 local myRoot = char and char:FindFirstChild("HumanoidRootPart")
                 if char and myRoot and followTarget then
-                    -- Auto-équipe Fists si besoin
                     local tool = char:FindFirstChild("Fists")
                     if not tool then
                         local bp = LP:FindFirstChild("Backpack")
@@ -490,21 +564,15 @@ local function makeFollowDropdown(parent, order)
                             end
                         end
                     end
-
                     local tChar = followTarget.Character
                     local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
                     local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
-
                     if tool and tRoot and tHum and tHum.Health > 0 then
-                        -- Tourne vers la cible
                         myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
-
-                        -- Récupère le RemoteEvent principal de Fists et fire
                         local remote = tool:FindFirstChildOfClass("RemoteEvent")
                         if remote then
                             remote:FireServer(tRoot.Position)
                         else
-                            -- Fallback si pas de remote
                             tool:Activate()
                         end
                     end
@@ -518,26 +586,22 @@ local function makeFollowDropdown(parent, order)
         for _, c in ipairs(dropList:GetChildren()) do
             if c:IsA("TextButton") then c:Destroy() end
         end
-
-        local stopBtn = Instance.new("TextButton")
-        stopBtn.Size = UDim2.new(1,0,0,40); stopBtn.BackgroundColor3 = Color3.fromRGB(80,30,30)
-        stopBtn.BorderSizePixel = 0; stopBtn.Text = "  ⛔  Stop Following"
-        stopBtn.TextColor3 = Color3.fromRGB(255,120,120); stopBtn.TextSize = 13
-        stopBtn.Font = Enum.Font.GothamBold; stopBtn.TextXAlignment = Enum.TextXAlignment.Left
-        stopBtn.AutoButtonColor = false; stopBtn.ZIndex = 101; stopBtn.Parent = dropList
-        corner(8, stopBtn)
-        stopBtn.MouseButton1Click:Connect(function() stopFollow(); close() end)
-
-        local count = 1
+        local count = 0
         for _, p in ipairs(Players:GetPlayers()) do
             if p == LP then continue end
             count += 1
             local pBtn = Instance.new("TextButton")
-            pBtn.Size = UDim2.new(1,0,0,40); pBtn.BackgroundColor3 = Color3.fromRGB(25,30,42)
-            pBtn.BorderSizePixel = 0; pBtn.Text = "  👤  "..p.Name
-            pBtn.TextColor3 = Color3.fromRGB(220,220,235); pBtn.TextSize = 13
-            pBtn.Font = Enum.Font.GothamMedium; pBtn.TextXAlignment = Enum.TextXAlignment.Left
-            pBtn.AutoButtonColor = false; pBtn.ZIndex = 101; pBtn.Parent = dropList
+            pBtn.Size = UDim2.new(1,0,0,40)
+            pBtn.BackgroundColor3 = Color3.fromRGB(25,30,42)
+            pBtn.BorderSizePixel = 0
+            pBtn.Text = "  👤  "..p.Name
+            pBtn.TextColor3 = Color3.fromRGB(220,220,235)
+            pBtn.TextSize = 13
+            pBtn.Font = Enum.Font.GothamMedium
+            pBtn.TextXAlignment = Enum.TextXAlignment.Left
+            pBtn.AutoButtonColor = false
+            pBtn.ZIndex = 51
+            pBtn.Parent = dropList
             corner(8, pBtn)
             local player = p
             pBtn.MouseEnter:Connect(function() tw(pBtn, {BackgroundColor3 = Color3.fromRGB(40,50,72)}) end)
@@ -552,28 +616,40 @@ local function makeFollowDropdown(parent, order)
         isOpen = true
         local count = refreshList()
         local h = math.min(count * 46 + 12, 220)
-        local x, y, w = getPos(h)
-        dropList.Position = UDim2.fromOffset(x,y); dropList.Size = UDim2.fromOffset(w,0)
-        dropList.Visible = true; tw(arrow, {Rotation = 180})
-        TweenService:Create(dropList, TI, {Size = UDim2.fromOffset(w,h)}):Play()
+        outerFrame.Size = UDim2.new(1,0,0,50 + 6 + h)
+        dropList.Visible = true
+        tw(arrow, {Rotation = 180})
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
     end)
 
+    -- Fermer si clic en dehors
     UserInputService.InputBegan:Connect(function(inp)
         if not isOpen then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-        local mx,my = inp.Position.X, inp.Position.Y
-        local dp = dropList.AbsolutePosition; local ds = dropList.AbsoluteSize
-        local cp = container.AbsolutePosition; local cs = container.AbsoluteSize
-        if not (mx>=dp.X and mx<=dp.X+ds.X and my>=dp.Y and my<=dp.Y+ds.Y)
-        and not (mx>=cp.X and mx<=cp.X+cs.X and my>=cp.Y and my<=cp.Y+cs.Y) then
+        local mx, my = inp.Position.X, inp.Position.Y
+        local op = outerFrame.AbsolutePosition; local os = outerFrame.AbsoluteSize
+        if not (mx >= op.X and mx <= op.X + os.X and my >= op.Y and my <= op.Y + os.Y) then
             close()
         end
     end)
 
-    Players.PlayerAdded:Connect(function() if isOpen then refreshList() end end)
+    local function resizeToCount(count)
+        local h = math.min(count * 46 + 12, 220)
+        outerFrame.Size = UDim2.new(1,0,0,50 + 6 + h)
+        TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
+    end
+
+    Players.PlayerAdded:Connect(function()
+        if not isOpen then return end
+        local count = refreshList()
+        resizeToCount(count)
+    end)
     Players.PlayerRemoving:Connect(function(p)
         if p == followTarget then stopFollow() end
-        if isOpen then refreshList() end
+        task.wait()  -- attendre que le joueur soit retiré de Players:GetPlayers()
+        if not isOpen then return end
+        local count = refreshList()
+        if count == 0 then close() else resizeToCount(count) end
     end)
 end
 
@@ -658,13 +734,6 @@ UserInputService.InputChanged:Connect(function(inp)
         math.clamp(fStart.X + d.X, 0, vp.X - W),
         math.clamp(fStart.Y + d.Y, 0, vp.Y - H)
     )
-    local mp = Main.AbsolutePosition; local ms = Main.AbsoluteSize
-    if dropListGlobal and dropListGlobal.Visible then
-        dropListGlobal.Position = UDim2.fromOffset(mp.X, mp.Y + ms.Y + 6)
-    end
-    if followDropGlobal and followDropGlobal.Visible then
-        followDropGlobal.Position = UDim2.fromOffset(mp.X, mp.Y + ms.Y + 6)
-    end
 end)
 
 -- ESP
