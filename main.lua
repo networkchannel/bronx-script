@@ -416,7 +416,7 @@ local followConn       = nil
 local followActive     = false
 local followDropGlobal = nil
 
-local SHOOT_RATE = 0.1
+local SHOOT_RATE = 0.01
 
 local function makeFollowDropdown(parent, order)
     local outerFrame = Instance.new("Frame")
