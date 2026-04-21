@@ -117,13 +117,11 @@ local function makeTab(name, icon)
     table.insert(tabs, tab)
 
     btn.MouseButton1Click:Connect(function()
-        -- Désactive tous les onglets
         for _, t in ipairs(tabs) do
             t.page.Visible = false
             tw(t.btn, {TextColor3 = Color3.fromRGB(120,130,160)})
             tw(t.underline, {Size = UDim2.new(0,0,0,2)})
         end
-        -- Active celui-ci
         page.Visible = true
         activeTab = tab
         tw(btn, {TextColor3 = Color3.fromRGB(255,255,255)})
@@ -137,12 +135,10 @@ local pageCombat   = makeTab("Combat",   "👁️")
 local pageMovement = makeTab("Movement", "🚀")
 local pageTeleport = makeTab("Teleport", "⚡")
 
--- Fix tab widths maintenant qu'on connaît le nombre
 for _, t in ipairs(tabs) do
     t.btn.Size = UDim2.new(1/#tabs, 0, 1, 0)
 end
 
--- Activate first tab
 tabs[1].page.Visible = true
 activeTab = tabs[1]
 tw(tabs[1].btn, {TextColor3 = Color3.fromRGB(255,255,255)})
@@ -371,10 +367,16 @@ local function makeDropdown(parent, order)
     Players.PlayerRemoving:Connect(function() if isOpen then refreshList() end end)
 end
 
--- Follow dropdown (même structure mais action différente)
-local followTarget = nil
-local followConn   = nil
+-- ===== FOLLOW DROPDOWN avec Follow corrigé + Auto-shoot NPC =====
+local followTarget     = nil
+local followConn       = nil
+local followActive     = false  -- flag booléen pour le loop auto-shoot
 local followDropGlobal = nil
+
+-- Cadence de tir configurable
+local SHOOT_RANGE  = 40   -- portée max en studs
+local SHOOT_DMG    = 10   -- dégâts par tick
+local SHOOT_RATE   = 0.1  -- secondes entre chaque tick
 
 local function makeFollowDropdown(parent, order)
     local container = Instance.new("Frame")
@@ -385,7 +387,7 @@ local function makeFollowDropdown(parent, order)
     local ico = lbl("🎯", 20, ACCENT, Enum.Font.GothamBold, container)
     ico.Size = UDim2.fromOffset(36,50); ico.Position = UDim2.fromOffset(12,0); ico.ZIndex = 13
 
-    local statusLbl = lbl("Follow Player", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, container)
+    local statusLbl = lbl("Follow + Auto-shoot NPC", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, container)
     statusLbl.Size = UDim2.new(1,-80,1,0); statusLbl.Position = UDim2.fromOffset(54,0)
     statusLbl.TextXAlignment = Enum.TextXAlignment.Left; statusLbl.ZIndex = 13
 
@@ -430,26 +432,87 @@ local function makeFollowDropdown(parent, order)
     end
 
     local function stopFollow()
+        followActive = false  -- coupe le loop auto-shoot
         if followConn then followConn:Disconnect(); followConn = nil end
         followTarget = nil
-        statusLbl.Text = "Follow Player"
+        statusLbl.Text       = "Follow + Auto-shoot NPC"
         statusLbl.TextColor3 = Color3.fromRGB(230,230,240)
+    end
+
+    local function isPlayerCharacter(model)
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p.Character == model then return true end
+        end
+        return false
     end
 
     local function startFollow(player)
         stopFollow()
         followTarget = player
-        statusLbl.Text = "Following: "..player.Name
+        followActive = true
+        statusLbl.Text       = "Following: "..player.Name
         statusLbl.TextColor3 = ACCENT
+
+        -- Follow : colle dans le dos à 1.5 studs, suit l'orientation du joueur
         followConn = RunService.Heartbeat:Connect(function()
             if not followTarget or not followTarget.Parent then stopFollow(); return end
             local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
             local tRoot  = followTarget.Character and followTarget.Character:FindFirstChild("HumanoidRootPart")
-            if myRoot and tRoot then
-                local dist = (myRoot.Position - tRoot.Position).Magnitude
-                if dist > 6 then
-                    myRoot.CFrame = CFrame.new(tRoot.Position + Vector3.new(0,0,4))
+            if not (myRoot and tRoot) then return end
+            local dist = (myRoot.Position - tRoot.Position).Magnitude
+            if dist > 1.5 then
+                local targetCF = tRoot.CFrame * CFrame.new(0, 0, 1.5)
+                myRoot.CFrame = CFrame.new(targetCF.Position, tRoot.Position)
+            end
+        end)
+
+        -- Auto-melee NPC : équipe Fists et Activate() sur le NPC le plus proche
+        task.spawn(function()
+            while followActive do
+                local char   = LP.Character
+                local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+                if char and myRoot then
+                    -- Auto-équipe Fists si pas déjà dans le character
+                    local tool = char:FindFirstChild("Fists")
+                    if not tool then
+                        local bp = LP:FindFirstChild("Backpack")
+                        if bp then
+                            local t = bp:FindFirstChild("Fists")
+                            if t then
+                                local hum = char:FindFirstChildOfClass("Humanoid")
+                                if hum then hum:EquipTool(t) end
+                                task.wait(0.1)
+                                tool = char:FindFirstChild("Fists")
+                            end
+                        end
+                    end
+
+                    -- Trouve le NPC le plus proche dans SHOOT_RANGE studs
+                    local closestNPC  = nil
+                    local closestDist = SHOOT_RANGE
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj:IsA("Humanoid") and obj.Health > 0 then
+                            local npcRoot = obj.Parent:FindFirstChild("HumanoidRootPart")
+                            if npcRoot and not isPlayerCharacter(obj.Parent) then
+                                local d = (myRoot.Position - npcRoot.Position).Magnitude
+                                if d < closestDist then
+                                    closestDist = d
+                                    closestNPC  = obj.Parent
+                                end
+                            end
+                        end
+                    end
+
+                    -- Tourne vers le NPC et attaque
+                    if tool and closestNPC then
+                        local npcRoot = closestNPC:FindFirstChild("HumanoidRootPart")
+                        if npcRoot then
+                            myRoot.CFrame = CFrame.new(myRoot.Position, npcRoot.Position)
+                        end
+                        tool:Activate()
+                    end
                 end
+                task.wait(SHOOT_RATE)
             end
         end)
     end
@@ -458,7 +521,7 @@ local function makeFollowDropdown(parent, order)
         for _, c in ipairs(dropList:GetChildren()) do
             if c:IsA("TextButton") then c:Destroy() end
         end
-        -- Bouton Stop
+
         local stopBtn = Instance.new("TextButton")
         stopBtn.Size = UDim2.new(1,0,0,40); stopBtn.BackgroundColor3 = Color3.fromRGB(80,30,30)
         stopBtn.BorderSizePixel = 0; stopBtn.Text = "  ⛔  Stop Following"
