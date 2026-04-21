@@ -254,11 +254,10 @@ local function makeSlider(parent, icon, txt, order, minV, maxV, defaultV, onChan
     end)
 end
 
--- ===== DROPDOWN TP (inline, plus joli) =====
+-- ===== DROPDOWN TP =====
 local dropListGlobal = nil
 
 local function makeDropdown(parent, order)
-    -- Container principal avec hauteur auto-extensible
     local outerFrame = Instance.new("Frame")
     outerFrame.Size = UDim2.new(1,0,0,50)
     outerFrame.BackgroundTransparency = 1
@@ -286,7 +285,6 @@ local function makeDropdown(parent, order)
     local arrow = lbl("▼", 12, Color3.fromRGB(120,130,160), Enum.Font.GothamBold, container)
     arrow.Size = UDim2.fromOffset(30,50); arrow.Position = UDim2.new(1,-36,0,0); arrow.ZIndex = 13
 
-    -- Dropdown inline, attaché au outerFrame
     local dropList = Instance.new("ScrollingFrame")
     dropList.BackgroundColor3 = Color3.fromRGB(18,22,32)
     dropList.BorderSizePixel = 0
@@ -360,7 +358,6 @@ local function makeDropdown(parent, order)
         return count
     end
 
-    -- Redimensionne le dropdown selon le nb de joueurs actuels (utilisé live)
     local function resizeToCount(count)
         local h = math.min(count * 46 + 12, 200)
         outerFrame.Size = UDim2.new(1,0,0,50 + 6 + h)
@@ -385,7 +382,6 @@ local function makeDropdown(parent, order)
         TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
     end)
 
-    -- Fermer si clic en dehors
     UserInputService.InputBegan:Connect(function(inp)
         if not isOpen then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
@@ -396,21 +392,20 @@ local function makeDropdown(parent, order)
         end
     end)
 
-    -- Mise à jour live : refresh + resize si le dropdown est ouvert
     Players.PlayerAdded:Connect(function()
         if not isOpen then return end
         local count = refreshList()
         resizeToCount(count)
     end)
     Players.PlayerRemoving:Connect(function()
-        task.wait()  -- attendre que le joueur soit retiré de Players:GetPlayers()
+        task.wait()
         if not isOpen then return end
         local count = refreshList()
         if count == 0 then close() else resizeToCount(count) end
     end)
 end
 
--- ===== FOLLOW DROPDOWN (bug stopBtn corrigé) =====
+-- ===== LOOP KILL DROPDOWN (FIXED) =====
 local followTarget     = nil
 local followConn       = nil
 local followActive     = false
@@ -443,7 +438,6 @@ local function makeFollowDropdown(parent, order)
     statusLbl.Size = UDim2.new(1,-130,1,0); statusLbl.Position = UDim2.fromOffset(54,0)
     statusLbl.TextXAlignment = Enum.TextXAlignment.Left; statusLbl.ZIndex = 13
 
-    -- FIX: stopBtn avec ZIndex plus haut et placé AVANT le mainBtn
     local stopBtn = Instance.new("TextButton")
     stopBtn.Size = UDim2.fromOffset(36,26)
     stopBtn.Position = UDim2.new(1,-84,0.5,-13)
@@ -454,22 +448,20 @@ local function makeFollowDropdown(parent, order)
     stopBtn.Font = Enum.Font.GothamBold
     stopBtn.TextColor3 = Color3.fromRGB(255,255,255)
     stopBtn.Visible = false
-    stopBtn.ZIndex = 20  -- ZIndex élevé pour passer au-dessus du mainBtn
+    stopBtn.ZIndex = 20
     stopBtn.Parent = container
     corner(8, stopBtn)
 
     local arrow = lbl("▼", 12, Color3.fromRGB(120,130,160), Enum.Font.GothamBold, container)
     arrow.Size = UDim2.fromOffset(30,50); arrow.Position = UDim2.new(1,-36,0,0); arrow.ZIndex = 13
 
-    -- FIX: mainBtn ne couvre PAS la zone du stopBtn
     local mainBtn = Instance.new("TextButton")
-    mainBtn.Size = UDim2.new(1,-44,1,0)  -- s'arrête avant le bord droit (laisse place au stopBtn + arrow)
+    mainBtn.Size = UDim2.new(1,-44,1,0)
     mainBtn.BackgroundTransparency = 1
     mainBtn.Text = ""
     mainBtn.ZIndex = 14
     mainBtn.Parent = container
 
-    -- Dropdown inline
     local dropList = Instance.new("ScrollingFrame")
     dropList.BackgroundColor3 = Color3.fromRGB(18,22,32)
     dropList.BorderSizePixel = 0
@@ -517,13 +509,18 @@ local function makeFollowDropdown(parent, order)
         tw(container, {BackgroundColor3 = ROW_BG})
     end
 
-    -- FIX: connexion du stopBtn directement, sans interférence du mainBtn
     stopBtn.MouseButton1Click:Connect(function()
         stopFollow()
     end)
 
+    -- ============================================================
+    -- FIX : LOOP KILL avec re-TP immédiat après mort du NPC
+    -- ============================================================
     local function startFollow(player)
-        stopFollow()
+        -- Arrête toute session précédente
+        followActive = false
+        if followConn then followConn:Disconnect(); followConn = nil end
+
         followTarget = player
         followActive = true
         statusLbl.Text       = "► "..player.Name
@@ -531,56 +528,99 @@ local function makeFollowDropdown(parent, order)
         stopBtn.Visible      = true
         tw(container, {BackgroundColor3 = Color3.fromRGB(20,28,46)})
 
-        followConn = RunService.Heartbeat:Connect(function()
-            if not followTarget or not followTarget.Parent then stopFollow(); return end
-            local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            local tChar  = followTarget.Character
-            local tRoot  = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            local tHum   = tChar and tChar:FindFirstChildOfClass("Humanoid")
-            if not (myRoot and tRoot) then return end
-            if not tHum or tHum.Health <= 0 then stopFollow(); return end
-            local dist = (myRoot.Position - tRoot.Position).Magnitude
-            if dist > 1.5 then
-                local targetCF = tRoot.CFrame * CFrame.new(0, 0, 1.5)
-                myRoot.CFrame = CFrame.new(targetCF.Position, tRoot.Position)
-            end
-        end)
-
+        -- Thread principal du loop kill
         task.spawn(function()
             while followActive do
-                local char   = LP.Character
-                local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-                if char and myRoot and followTarget then
-                    local tool = char:FindFirstChild("Fists")
-                    if not tool then
-                        local bp = LP:FindFirstChild("Backpack")
-                        if bp then
-                            local t = bp:FindFirstChild("Fists")
-                            if t then
-                                local hum = char:FindFirstChildOfClass("Humanoid")
-                                if hum then hum:EquipTool(t) end
-                                task.wait(0.15)
-                                tool = char:FindFirstChild("Fists")
-                            end
+                -- Vérifie que la cible existe toujours
+                if not followTarget or not followTarget.Parent then
+                    stopFollow()
+                    break
+                end
+
+                local myChar = LP.Character
+                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
+
+                if not myRoot or not myHum or myHum.Health <= 0 then
+                    task.wait(0.1)
+                    continue
+                end
+
+                local tChar = followTarget.Character
+                local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+                -- Si la cible est morte ou son personnage absent → attendre le respawn et re-TP
+                if not tChar or not tRoot or not tHum or tHum.Health <= 0 then
+                    -- Attendre que le personnage réapparaisse
+                    local respawnChar = nil
+                    local timeout = 0
+                    repeat
+                        task.wait(0.05)
+                        timeout += 0.05
+                        respawnChar = followTarget.Character
+                        if not followActive then break end
+                        if not followTarget or not followTarget.Parent then break end
+                    until (respawnChar
+                        and respawnChar:FindFirstChild("HumanoidRootPart")
+                        and respawnChar:FindFirstChildOfClass("Humanoid")
+                        and respawnChar:FindFirstChildOfClass("Humanoid").Health > 0)
+                        or timeout > 15
+
+                    if not followActive then break end
+                    if not followTarget or not followTarget.Parent then stopFollow(); break end
+
+                    -- Re-TP immédiat sur le NPC après son respawn
+                    local newRoot = followTarget.Character and followTarget.Character:FindFirstChild("HumanoidRootPart")
+                    if newRoot then
+                        local mr = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                        if mr then
+                            mr.CFrame = CFrame.new(newRoot.Position + Vector3.new(0, 0, 1.5))
                         end
                     end
-                    local tChar = followTarget.Character
-                    local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-                    local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
-                    if tool and tRoot and tHum and tHum.Health > 0 then
-                        myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
-                        local remote = tool:FindFirstChildOfClass("RemoteEvent")
-                        if remote then
-                            remote:FireServer(tRoot.Position)
-                        else
-                            tool:Activate()
+
+                    task.wait(0.1)
+                    continue
+                end
+
+                -- Re-TP si trop loin (> 2 studs)
+                local dist = (myRoot.Position - tRoot.Position).Magnitude
+                if dist > 2 then
+                    myRoot.CFrame = CFrame.new(tRoot.Position + Vector3.new(0, 0, 1.5))
+                end
+
+                -- Face la cible
+                myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
+
+                -- Équipe et active l'outil
+                local tool = myChar:FindFirstChild("Fists")
+                if not tool then
+                    local bp = LP:FindFirstChild("Backpack")
+                    if bp then
+                        local t = bp:FindFirstChild("Fists")
+                        if t then
+                            local hum = myChar:FindFirstChildOfClass("Humanoid")
+                            if hum then hum:EquipTool(t) end
+                            task.wait(0.15)
+                            tool = myChar:FindFirstChild("Fists")
                         end
                     end
                 end
+
+                if tool then
+                    local remote = tool:FindFirstChildOfClass("RemoteEvent")
+                    if remote then
+                        remote:FireServer(tRoot.Position)
+                    else
+                        tool:Activate()
+                    end
+                end
+
                 task.wait(SHOOT_RATE)
             end
         end)
     end
+    -- ============================================================
 
     local function refreshList()
         for _, c in ipairs(dropList:GetChildren()) do
@@ -622,7 +662,6 @@ local function makeFollowDropdown(parent, order)
         TweenService:Create(dropList, TI, {Size = UDim2.new(1,0,0,h)}):Play()
     end)
 
-    -- Fermer si clic en dehors
     UserInputService.InputBegan:Connect(function(inp)
         if not isOpen then return end
         if inp.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
@@ -646,7 +685,7 @@ local function makeFollowDropdown(parent, order)
     end)
     Players.PlayerRemoving:Connect(function(p)
         if p == followTarget then stopFollow() end
-        task.wait()  -- attendre que le joueur soit retiré de Players:GetPlayers()
+        task.wait()
         if not isOpen then return end
         local count = refreshList()
         if count == 0 then close() else resizeToCount(count) end
