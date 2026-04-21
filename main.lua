@@ -17,7 +17,7 @@ end
 task.wait(0.05)
 
 -- Constantes
-local W, H   = 300, 290
+local W, H   = 300, 420
 local BG     = Color3.fromRGB(14, 16, 22)
 local ACCENT = Color3.fromRGB(110, 130, 255)
 local ROW_BG = Color3.fromRGB(22, 26, 36)
@@ -82,7 +82,7 @@ local titleL = lbl("⚡ TOOLKIT", 16, Color3.fromRGB(240,240,255), Enum.Font.Got
 titleL.Size = UDim2.new(1,-16,0,52); titleL.Position = UDim2.new(0,16,0,0)
 titleL.TextXAlignment = Enum.TextXAlignment.Left; titleL.ZIndex = 12
 
-local subL = lbl("ESP • Teleport", 11, Color3.fromRGB(100,110,140), Enum.Font.Gotham, Header)
+local subL = lbl("ESP • Fly • Speed • Teleport", 11, Color3.fromRGB(100,110,140), Enum.Font.Gotham, Header)
 subL.Size = UDim2.new(1,-16,0,52); subL.Position = UDim2.new(0,16,0,22)
 subL.TextXAlignment = Enum.TextXAlignment.Left; subL.ZIndex = 12
 
@@ -300,15 +300,141 @@ local function makeDropdown(order)
     return dropList, container
 end
 
+-- Fly
+local flyConn = nil
+local function startFly()
+    local char = LP.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum  = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+    hum.PlatformStand = true
+    local bv = Instance.new("BodyVelocity")
+    bv.Velocity = Vector3.zero
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Parent = root
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e5,1e5,1e5)
+    bg.P = 1e4
+    bg.Parent = root
+    local speed = 40
+    flyConn = RunService.RenderStepped:Connect(function()
+        if not root or not root.Parent then flyConn:Disconnect(); return end
+        local cf = Cam.CFrame
+        local dir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Z) then dir = dir + cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cf.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Q) then dir = dir - cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0,1,0) end
+        bv.Velocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
+        bg.CFrame = cf
+    end)
+end
+
+local function stopFly()
+    local char = LP.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum  = char:FindFirstChildOfClass("Humanoid")
+        if root then
+            for _, v in ipairs(root:GetChildren()) do
+                if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then v:Destroy() end
+            end
+        end
+        if hum then hum.PlatformStand = false end
+    end
+    if flyConn then flyConn:Disconnect(); flyConn = nil end
+end
+
+-- Speed
+local defaultSpeed = 16
+local function setSpeed(mult)
+    local char = LP.Character
+    local hum  = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = defaultSpeed * mult end
+end
+
 -- Construction (LayoutOrder contrôle l'ordre affiché)
 local espPill, espOn = makeToggle("📊", "ESP", 1)
 
-makeBtn("🔫", "Go to Gun Store", 2, function()
+-- Fly toggle
+local flyPill, flyOn = makeToggle("🦅", "Fly  (WASD + Space)", 2)
+flyPill.MouseButton1Click:Connect(function()
+    task.defer(function()
+        if flyOn() then startFly() else stopFly() end
+    end)
+end)
+LP.CharacterAdded:Connect(function()
+    if flyOn() then task.wait(0.5); startFly() end
+end)
+
+-- Speed slider
+local speedMult = 1
+local speedRow = Instance.new("Frame")
+speedRow.Size = UDim2.new(1,0,0,60)
+speedRow.BackgroundColor3 = ROW_BG
+speedRow.BorderSizePixel = 0
+speedRow.LayoutOrder = 3
+speedRow.ZIndex = 11
+speedRow.Parent = Content
+corner(12, speedRow)
+
+local speedIco = lbl("💨", 20, ACCENT, Enum.Font.GothamBold, speedRow)
+speedIco.Size = UDim2.fromOffset(36,60); speedIco.Position = UDim2.fromOffset(12,0); speedIco.ZIndex = 12
+
+local speedTitle = lbl("Speed  ×1", 14, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, speedRow)
+speedTitle.Size = UDim2.new(1,-60,0,30); speedTitle.Position = UDim2.fromOffset(54,4)
+speedTitle.TextXAlignment = Enum.TextXAlignment.Left; speedTitle.ZIndex = 12
+
+local trackBg = Instance.new("Frame")
+trackBg.Size = UDim2.new(1,-66,0,6)
+trackBg.Position = UDim2.new(0,54,0,40)
+trackBg.BackgroundColor3 = Color3.fromRGB(35,40,55)
+trackBg.BorderSizePixel = 0; trackBg.ZIndex = 12; trackBg.Parent = speedRow
+corner(3, trackBg)
+
+local trackFill = Instance.new("Frame")
+trackFill.Size = UDim2.new(0,0,1,0)
+trackFill.BackgroundColor3 = ACCENT
+trackFill.BorderSizePixel = 0; trackFill.ZIndex = 13; trackFill.Parent = trackBg
+corner(3, trackFill)
+
+local handle = Instance.new("TextButton")
+handle.Size = UDim2.fromOffset(16,16)
+handle.Position = UDim2.new(0,-8,0.5,-8)
+handle.BackgroundColor3 = Color3.fromRGB(255,255,255)
+handle.BorderSizePixel = 0; handle.Text = ""; handle.ZIndex = 14; handle.Parent = trackBg
+corner(8, handle)
+
+local draggingSlider = false
+handle.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = true end
+end)
+UserInputService.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end
+end)
+UserInputService.InputChanged:Connect(function(inp)
+    if not draggingSlider then return end
+    if inp.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+    local tbPos = trackBg.AbsolutePosition.X
+    local tbW   = trackBg.AbsoluteSize.X
+    local t = math.clamp((inp.Position.X - tbPos) / tbW, 0, 1)
+    trackFill.Size = UDim2.new(t,0,1,0)
+    handle.Position = UDim2.new(t,-8,0.5,-8)
+    -- 1x à 10x
+    speedMult = 1 + t * 9
+    speedTitle.Text = string.format("Speed  ×%.1f", speedMult)
+    setSpeed(speedMult)
+end)
+
+makeBtn("🔫", "Go to Gun Store", 4, function()
     local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
     if myRoot then myRoot.CFrame = CFrame.new(6590.24, 3580.35, 2276.79) end
 end)
 
-local dropListRef, dropContainerRef = makeDropdown(3)
+local dropListRef, dropContainerRef = makeDropdown(5)
 
 -- Drag
 local dragging, dStart, fStart = false, Vector2.zero, Vector2.zero
