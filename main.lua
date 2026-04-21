@@ -387,7 +387,7 @@ local function makeFollowDropdown(parent, order)
     local ico = lbl("🎯", 20, ACCENT, Enum.Font.GothamBold, container)
     ico.Size = UDim2.fromOffset(36,50); ico.Position = UDim2.fromOffset(12,0); ico.ZIndex = 13
 
-    local statusLbl = lbl("Follow + Auto-shoot NPC", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, container)
+    local statusLbl = lbl("Loop Kill", 13, Color3.fromRGB(230,230,240), Enum.Font.GothamMedium, container)
     statusLbl.Size = UDim2.new(1,-80,1,0); statusLbl.Position = UDim2.fromOffset(54,0)
     statusLbl.TextXAlignment = Enum.TextXAlignment.Left; statusLbl.ZIndex = 13
 
@@ -435,7 +435,7 @@ local function makeFollowDropdown(parent, order)
         followActive = false  -- coupe le loop auto-shoot
         if followConn then followConn:Disconnect(); followConn = nil end
         followTarget = nil
-        statusLbl.Text       = "Follow + Auto-shoot NPC"
+        statusLbl.Text       = "Loop Kill"
         statusLbl.TextColor3 = Color3.fromRGB(230,230,240)
     end
 
@@ -457,8 +457,12 @@ local function makeFollowDropdown(parent, order)
         followConn = RunService.Heartbeat:Connect(function()
             if not followTarget or not followTarget.Parent then stopFollow(); return end
             local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            local tRoot  = followTarget.Character and followTarget.Character:FindFirstChild("HumanoidRootPart")
+            local tChar  = followTarget.Character
+            local tRoot  = tChar and tChar:FindFirstChild("HumanoidRootPart")
+            local tHum   = tChar and tChar:FindFirstChildOfClass("Humanoid")
             if not (myRoot and tRoot) then return end
+            -- Stop si le NPC est mort
+            if not tHum or tHum.Health <= 0 then stopFollow(); return end
             local dist = (myRoot.Position - tRoot.Position).Magnitude
             if dist > 1.5 then
                 local targetCF = tRoot.CFrame * CFrame.new(0, 0, 1.5)
@@ -466,13 +470,13 @@ local function makeFollowDropdown(parent, order)
             end
         end)
 
-        -- Auto-melee NPC : équipe Fists et Activate() sur le NPC le plus proche
+        -- Auto-melee : FireServer en continu sur le RemoteEvent de Fists
         task.spawn(function()
             while followActive do
                 local char   = LP.Character
                 local myRoot = char and char:FindFirstChild("HumanoidRootPart")
-                if char and myRoot then
-                    -- Auto-équipe Fists si pas déjà dans le character
+                if char and myRoot and followTarget then
+                    -- Auto-équipe Fists si besoin
                     local tool = char:FindFirstChild("Fists")
                     if not tool then
                         local bp = LP:FindFirstChild("Backpack")
@@ -481,35 +485,28 @@ local function makeFollowDropdown(parent, order)
                             if t then
                                 local hum = char:FindFirstChildOfClass("Humanoid")
                                 if hum then hum:EquipTool(t) end
-                                task.wait(0.1)
+                                task.wait(0.15)
                                 tool = char:FindFirstChild("Fists")
                             end
                         end
                     end
 
-                    -- Trouve le NPC le plus proche dans SHOOT_RANGE studs
-                    local closestNPC  = nil
-                    local closestDist = SHOOT_RANGE
-                    for _, obj in ipairs(workspace:GetDescendants()) do
-                        if obj:IsA("Humanoid") and obj.Health > 0 then
-                            local npcRoot = obj.Parent:FindFirstChild("HumanoidRootPart")
-                            if npcRoot and not isPlayerCharacter(obj.Parent) then
-                                local d = (myRoot.Position - npcRoot.Position).Magnitude
-                                if d < closestDist then
-                                    closestDist = d
-                                    closestNPC  = obj.Parent
-                                end
-                            end
-                        end
-                    end
+                    local tChar = followTarget.Character
+                    local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                    local tHum  = tChar and tChar:FindFirstChildOfClass("Humanoid")
 
-                    -- Tourne vers le NPC et attaque
-                    if tool and closestNPC then
-                        local npcRoot = closestNPC:FindFirstChild("HumanoidRootPart")
-                        if npcRoot then
-                            myRoot.CFrame = CFrame.new(myRoot.Position, npcRoot.Position)
+                    if tool and tRoot and tHum and tHum.Health > 0 then
+                        -- Tourne vers la cible
+                        myRoot.CFrame = CFrame.new(myRoot.Position, tRoot.Position)
+
+                        -- Récupère le RemoteEvent principal de Fists et fire
+                        local remote = tool:FindFirstChildOfClass("RemoteEvent")
+                        if remote then
+                            remote:FireServer(tRoot.Position)
+                        else
+                            -- Fallback si pas de remote
+                            tool:Activate()
                         end
-                        tool:Activate()
                     end
                 end
                 task.wait(SHOOT_RATE)
@@ -638,7 +635,7 @@ makeBtn(pageTeleport, "🔫", "Go to Gun Store", 1, function()
     if r then r.CFrame = CFrame.new(6590.24, 3580.35, 2276.79) end
 end)
 makeDropdown(pageTeleport, 2)
-makeFollowDropdown(pageTeleport, 3)
+makeFollowDropdown(pageCombat, 2)
 
 -- Drag
 local dragging, dStart, fStart = false, Vector2.zero, Vector2.zero
