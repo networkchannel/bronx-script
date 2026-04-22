@@ -388,21 +388,6 @@ local function stopAimbot()
     currentTarget = nil
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 end
-
--- Keybind K pour toggle aimbot
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.K then
-        AIMBOT_ENABLED = not AIMBOT_ENABLED
-        
-        if AIMBOT_ENABLED then
-            startAimbot()
-        else
-            stopAimbot()
-        end
-    end
-end)
 -- ===== FIN FONCTIONS AIMBOT =====
 
 -- ===== DROPDOWN TP (inline, plus joli) =====
@@ -802,28 +787,33 @@ local espPill, espOn, espSet = makeToggle(pageCombat, "📊", "ESP", 1)
 -- Toggle Aimbot (ordre 2)
 local aimbotPill, aimbotOn, aimbotSet = makeToggle(pageCombat, "🎯", "Aimbot [K]", 2)
 
--- Boucle pour synchroniser le toggle UI avec la touche K
-RunService.RenderStepped:Connect(function()
-    local shouldBeOn = aimbotOn()
+-- Hook le clic sur le toggle pour synchroniser AIMBOT_ENABLED
+aimbotPill.MouseButton1Click:Connect(function()
+    task.wait(0.01) -- Attends que makeToggle change son état interne
+    AIMBOT_ENABLED = aimbotOn()
     
-    -- Synchronise AIMBOT_ENABLED avec l'UI
-    if shouldBeOn ~= AIMBOT_ENABLED then
+    if AIMBOT_ENABLED then
+        startAimbot()
+    else
+        stopAimbot()
+    end
+end)
+
+-- Keybind K pour toggle aimbot
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.K then
+        AIMBOT_ENABLED = not AIMBOT_ENABLED
+        
+        -- Synchronise l'UI
+        aimbotSet(AIMBOT_ENABLED)
+        
         if AIMBOT_ENABLED then
-            aimbotSet(true)  -- Force l'UI à ON
             startAimbot()
         else
-            aimbotSet(false)  -- Force l'UI à OFF
             stopAimbot()
         end
-    end
-    
-    -- Si le toggle UI change, met à jour l'aimbot
-    if shouldBeOn and not AIMBOT_ENABLED then
-        AIMBOT_ENABLED = true
-        startAimbot()
-    elseif not shouldBeOn and AIMBOT_ENABLED then
-        AIMBOT_ENABLED = false
-        stopAimbot()
     end
 end)
 
