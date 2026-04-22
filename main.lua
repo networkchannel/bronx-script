@@ -11,9 +11,11 @@ local PGui = LP:WaitForChild("PlayerGui")
 -- ===== VARIABLES AIMBOT =====
 local AIMBOT_ENABLED = false
 local currentTarget = nil
-local FOV_SIZE = 150  -- Réduit à 150
-local MAX_DISTANCE = 150  -- Augmenté à 150m
-local SMOOTHNESS = 0.1  -- Amélioré pour plus de fluidité
+local FOV_SIZE_MIN = 80   -- FOV minimum quand joueur proche
+local FOV_SIZE_MAX = 250  -- FOV maximum quand joueur loin
+local MAX_DISTANCE = 150  -- Distance maximum en studs (150m)
+local SMOOTHNESS_MIN = 0.25  -- Lock fort quand proche
+local SMOOTHNESS_MAX = 0.05  -- Lock doux quand loin
 local aimbotLoop = nil
 
 -- Nettoyage
@@ -314,12 +316,16 @@ local function getClosestPlayerInFOV()
                         local screenPos, onScreen = Cam:WorldToViewportPoint(theirHead.Position)
                         
                         if onScreen then
+                            -- FOV DYNAMIQUE: plus proche = FOV plus petit
+                            local distanceRatio = distance3D / MAX_DISTANCE -- 0 = très proche, 1 = très loin
+                            local dynamicFOV = FOV_SIZE_MIN + (FOV_SIZE_MAX - FOV_SIZE_MIN) * distanceRatio
+                            
                             local distance2D = math.sqrt(
                                 (screenPos.X - screenCenter.X)^2 + 
                                 (screenPos.Y - screenCenter.Y)^2
                             )
                             
-                            if distance2D < FOV_SIZE and distance2D < shortestDistance then
+                            if distance2D < dynamicFOV and distance2D < shortestDistance then
                                 shortestDistance = distance2D
                                 closestPlayer = player
                             end
@@ -341,22 +347,33 @@ local function isTargetValid(player)
     
     if not humanoid or humanoid.Health <= 0 or not head then return false end
     
+    -- Calcule la distance 3D
+    local myChar = LP.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return false end
+    
+    local distance3D = (myChar.HumanoidRootPart.Position - head.Position).Magnitude
+    
+    -- FOV DYNAMIQUE basé sur distance
+    local distanceRatio = distance3D / MAX_DISTANCE
+    local dynamicFOV = FOV_SIZE_MIN + (FOV_SIZE_MAX - FOV_SIZE_MIN) * distanceRatio
+    
     local screenPos, onScreen = Cam:WorldToViewportPoint(head.Position)
     if not onScreen then return false end
     
     local screenCenter = Cam.ViewportSize / 2
-    local distance = math.sqrt(
+    local distance2D = math.sqrt(
         (screenPos.X - screenCenter.X)^2 + 
         (screenPos.Y - screenCenter.Y)^2
     )
     
-    return distance < FOV_SIZE
+    return distance2D < dynamicFOV
 end
 
 local function startAimbot()
     if aimbotLoop then return end
     
     UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    print("✅ AIMBOT ON - Souris lockée")
     
     aimbotLoop = RunService.RenderStepped:Connect(function()
         if not AIMBOT_ENABLED then return end
@@ -371,9 +388,19 @@ local function startAimbot()
         
         if currentTarget and currentTarget.Character then
             local head = currentTarget.Character:FindFirstChild("Head")
-            if head then
+            local myChar = LP.Character
+            
+            if head and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                -- Calcule la distance 3D
+                local distance3D = (myChar.HumanoidRootPart.Position - head.Position).Magnitude
+                
+                -- SMOOTHNESS DYNAMIQUE: plus proche = lock plus fort
+                local distanceRatio = distance3D / MAX_DISTANCE -- 0 = très proche, 1 = très loin
+                local dynamicSmooth = SMOOTHNESS_MIN - (SMOOTHNESS_MIN - SMOOTHNESS_MAX) * distanceRatio
+                
+                -- Applique le lock avec smoothness dynamique
                 local targetCFrame = CFrame.new(Cam.CFrame.Position, head.Position)
-                Cam.CFrame = Cam.CFrame:Lerp(targetCFrame, SMOOTHNESS)
+                Cam.CFrame = Cam.CFrame:Lerp(targetCFrame, dynamicSmooth)
             end
         end
     end)
@@ -387,6 +414,7 @@ local function stopAimbot()
     
     currentTarget = nil
     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    print("❌ AIMBOT OFF - Souris délockée")
 end
 -- ===== FIN FONCTIONS AIMBOT =====
 
