@@ -789,17 +789,16 @@ local espPill, espOn = makeToggle(pageCombat, "📊", "ESP", 1)
 
 -- Toggle Aimbot (ordre 2)
 local aimbotPill, aimbotOn = makeToggle(pageCombat, "🎯", "Aimbot [K]", 2)
-aimbotPill.MouseButton1Click:Connect(function()
-    -- Le toggle visuel est déjà géré par makeToggle
-    -- On synchronise juste avec la variable AIMBOT_ENABLED
-    AIMBOT_ENABLED = aimbotOn()
-    
-    if AIMBOT_ENABLED then
+
+-- Boucle pour synchroniser le toggle UI avec l'aimbot
+RunService.RenderStepped:Connect(function()
+    local shouldBeOn = aimbotOn()
+    if shouldBeOn and not AIMBOT_ENABLED then
+        AIMBOT_ENABLED = true
         startAimbot()
-        print("✅ AIMBOT ON (via UI)")
-    else
+    elseif not shouldBeOn and AIMBOT_ENABLED then
+        AIMBOT_ENABLED = false
         stopAimbot()
-        print("❌ AIMBOT OFF (via UI)")
     end
 end)
 
@@ -895,7 +894,7 @@ makeBtn(pageTeleport, "🚗", "TP to Car", 2, function()
     if r then r.CFrame = CFrame.new(5626.6, 3580.4, 2309.6) end
 end)
 makeDropdown(pageTeleport, 3)
-makeFollowDropdown(pageCombat, 2)
+makeFollowDropdown(pageCombat, 3)
 
 -- Drag
 local dragging, dStart, fStart = false, Vector2.zero, Vector2.zero
