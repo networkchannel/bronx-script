@@ -8,6 +8,14 @@ local LP  = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 local PGui = LP:WaitForChild("PlayerGui")
 
+-- ===== VARIABLES AIMBOT =====
+local AIMBOT_ENABLED = false
+local currentTarget = nil
+local FOV_SIZE = 150  -- Réduit à 150
+local MAX_DISTANCE = 150  -- Augmenté à 150m
+local SMOOTHNESS = 0.1  -- Amélioré pour plus de fluidité
+local aimbotLoop = nil
+
 -- Nettoyage
 for _, g in ipairs(PGui:GetChildren()) do
     if g:IsA("ScreenGui") and g:GetAttribute("_TOOLKIT_SCRIPT") then
@@ -254,6 +262,136 @@ local function makeSlider(parent, icon, txt, order, minV, maxV, defaultV, onChan
         onChange(val)
     end)
 end
+
+-- ===== FONCTIONS AIMBOT =====
+local function isVisible(target)
+    if not LP.Character or not LP.Character:FindFirstChild("Head") then return false end
+    if not target.Character or not target.Character:FindFirstChild("Head") then return false end
+    
+    local myHead = LP.Character.Head
+    local theirHead = target.Character.Head
+    local ray = Ray.new(myHead.Position, (theirHead.Position - myHead.Position))
+    local hitPart = workspace:FindPartOnRayWithIgnoreList(ray, {LP.Character, target.Character})
+    
+    return hitPart == nil
+end
+
+local function getClosestPlayerInFOV()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local myChar = LP.Character
+    
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local myPos = myChar.HumanoidRootPart.Position
+    local screenCenter = Cam.ViewportSize / 2
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LP and player.Character then
+            local theirChar = player.Character
+            local theirHumanoid = theirChar:FindFirstChild("Humanoid")
+            local theirHead = theirChar:FindFirstChild("Head")
+            
+            if theirHumanoid and theirHumanoid.Health > 0 and theirHead then
+                local distance3D = (myPos - theirHead.Position).Magnitude
+                
+                if distance3D <= MAX_DISTANCE then
+                    if isVisible(player) then
+                        local screenPos, onScreen = Cam:WorldToViewportPoint(theirHead.Position)
+                        
+                        if onScreen then
+                            local distance2D = math.sqrt(
+                                (screenPos.X - screenCenter.X)^2 + 
+                                (screenPos.Y - screenCenter.Y)^2
+                            )
+                            
+                            if distance2D < FOV_SIZE and distance2D < shortestDistance then
+                                shortestDistance = distance2D
+                                closestPlayer = player
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+local function isTargetValid(player)
+    if not player or not player.Character then return false end
+    
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    local head = player.Character:FindFirstChild("Head")
+    
+    if not humanoid or humanoid.Health <= 0 or not head then return false end
+    
+    local screenPos, onScreen = Cam:WorldToViewportPoint(head.Position)
+    if not onScreen then return false end
+    
+    local screenCenter = Cam.ViewportSize / 2
+    local distance = math.sqrt(
+        (screenPos.X - screenCenter.X)^2 + 
+        (screenPos.Y - screenCenter.Y)^2
+    )
+    
+    return distance < FOV_SIZE
+end
+
+local function startAimbot()
+    if aimbotLoop then return end
+    
+    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    
+    aimbotLoop = RunService.RenderStepped:Connect(function()
+        if not AIMBOT_ENABLED then return end
+        
+        if currentTarget and not isTargetValid(currentTarget) then
+            currentTarget = nil
+        end
+        
+        if not currentTarget then
+            currentTarget = getClosestPlayerInFOV()
+        end
+        
+        if currentTarget and currentTarget.Character then
+            local head = currentTarget.Character:FindFirstChild("Head")
+            if head then
+                local targetCFrame = CFrame.new(Cam.CFrame.Position, head.Position)
+                Cam.CFrame = Cam.CFrame:Lerp(targetCFrame, SMOOTHNESS)
+            end
+        end
+    end)
+end
+
+local function stopAimbot()
+    if aimbotLoop then
+        aimbotLoop:Disconnect()
+        aimbotLoop = nil
+    end
+    
+    currentTarget = nil
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
+
+-- Keybind K pour toggle aimbot
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.K then
+        AIMBOT_ENABLED = not AIMBOT_ENABLED
+        
+        if AIMBOT_ENABLED then
+            startAimbot()
+            print("✅ AIMBOT ON")
+        else
+            stopAimbot()
+            print("❌ AIMBOT OFF")
+        end
+    end
+end)
+-- ===== FIN FONCTIONS AIMBOT =====
 
 -- ===== DROPDOWN TP (inline, plus joli) =====
 local dropListGlobal = nil
@@ -648,6 +786,22 @@ end
 
 -- Onglet COMBAT
 local espPill, espOn = makeToggle(pageCombat, "📊", "ESP", 1)
+
+-- Toggle Aimbot (ordre 2)
+local aimbotPill, aimbotOn = makeToggle(pageCombat, "🎯", "Aimbot [K]", 2)
+aimbotPill.MouseButton1Click:Connect(function()
+    -- Le toggle visuel est déjà géré par makeToggle
+    -- On synchronise juste avec la variable AIMBOT_ENABLED
+    AIMBOT_ENABLED = aimbotOn()
+    
+    if AIMBOT_ENABLED then
+        startAimbot()
+        print("✅ AIMBOT ON (via UI)")
+    else
+        stopAimbot()
+        print("❌ AIMBOT OFF (via UI)")
+    end
+end)
 
 -- Onglet MOVEMENT
 local flyConn = nil
