@@ -190,7 +190,21 @@ local function makeToggle(parent, icon, txt, order)
             tw(knob, {Position = UDim2.fromOffset(3,3), BackgroundColor3 = Color3.fromRGB(90,100,120)})
         end
     end)
-    return pill, function() return on end
+    
+    -- Fonction pour forcer l'état (utilisé par les keybinds)
+    local function setOn(value)
+        if on == value then return end
+        on = value
+        if on then
+            tw(pill, {BackgroundColor3 = ACCENT})
+            tw(knob, {Position = UDim2.fromOffset(25,3), BackgroundColor3 = Color3.fromRGB(255,255,255)})
+        else
+            tw(pill, {BackgroundColor3 = Color3.fromRGB(35,40,55)})
+            tw(knob, {Position = UDim2.fromOffset(3,3), BackgroundColor3 = Color3.fromRGB(90,100,120)})
+        end
+    end
+    
+    return pill, function() return on end, setOn
 end
 
 local function makeBtn(parent, icon, txt, order, callback)
@@ -384,10 +398,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         
         if AIMBOT_ENABLED then
             startAimbot()
-            print("✅ AIMBOT ON")
         else
             stopAimbot()
-            print("❌ AIMBOT OFF")
         end
     end
 end)
@@ -785,14 +797,27 @@ end
 -- ===== CONSTRUCTION PAR ONGLET =====
 
 -- Onglet COMBAT
-local espPill, espOn = makeToggle(pageCombat, "📊", "ESP", 1)
+local espPill, espOn, espSet = makeToggle(pageCombat, "📊", "ESP", 1)
 
 -- Toggle Aimbot (ordre 2)
-local aimbotPill, aimbotOn = makeToggle(pageCombat, "🎯", "Aimbot [K]", 2)
+local aimbotPill, aimbotOn, aimbotSet = makeToggle(pageCombat, "🎯", "Aimbot [K]", 2)
 
--- Boucle pour synchroniser le toggle UI avec l'aimbot
+-- Boucle pour synchroniser le toggle UI avec la touche K
 RunService.RenderStepped:Connect(function()
     local shouldBeOn = aimbotOn()
+    
+    -- Synchronise AIMBOT_ENABLED avec l'UI
+    if shouldBeOn ~= AIMBOT_ENABLED then
+        if AIMBOT_ENABLED then
+            aimbotSet(true)  -- Force l'UI à ON
+            startAimbot()
+        else
+            aimbotSet(false)  -- Force l'UI à OFF
+            stopAimbot()
+        end
+    end
+    
+    -- Si le toggle UI change, met à jour l'aimbot
     if shouldBeOn and not AIMBOT_ENABLED then
         AIMBOT_ENABLED = true
         startAimbot()
